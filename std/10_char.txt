@@ -1,0 +1,138 @@
+struct Char code:B7
+
+fn put Unit c:Char
+    > $c.code
+    id ~ #unit
+
+fn read List
+    fn read_char List
+        < code B7
+        Char char code;$code
+        b7_to_nat code_n $code
+        is_zero is_null $code_n
+        just when_null $empty_list
+        fn when_non_null List
+            read_char rest
+            push_front ~ $rest $char
+        lazy_if ~ $is_null $when_null $when_non_null
+    ^
+    read_char ~
+
+Char '- code;#0100000b
+Char '| code;#0001010b
+
+Char 'comm code;#0101100b
+Char 'excl code;#0100001b
+Char 'plus code;#0101011b
+Char 'dash code;#0101101b
+Char 'colo code;#0111010b
+
+Char '0 code;#0110000b
+Char '1 code;#0110001b
+Char '2 code;#0110010b
+Char '3 code;#0110011b
+Char '4 code;#0110100b
+Char '5 code;#0110101b
+Char '6 code;#0110110b
+Char '7 code;#0110111b
+Char '8 code;#0111000b
+Char '9 code;#0111001b
+
+Char 'A code;#1000001b
+Char 'B code;#1000010b
+Char 'C code;#1000011b
+Char 'D code;#1000100b
+Char 'E code;#1000101b
+Char 'F code;#1000110b
+Char 'G code;#1000111b
+Char 'H code;#1001000b
+Char 'I code;#1001001b
+Char 'J code;#1001010b
+Char 'K code;#1001011b
+Char 'L code;#1001100b
+Char 'M code;#1001101b
+Char 'N code;#1001110b
+Char 'O code;#1001111b
+Char 'P code;#1010000b
+Char 'Q code;#1010001b
+Char 'R code;#1010010b
+Char 'S code;#1010011b
+Char 'T code;#1010100b
+Char 'U code;#1010101b
+Char 'V code;#1010110b
+Char 'W code;#1010111b
+Char 'X code;#1011000b
+Char 'Y code;#1011001b
+Char 'Z code;#1011010b
+
+Char 'a code;#1100001b
+Char 'b code;#1100010b
+Char 'c code;#1100011b
+Char 'd code;#1100100b
+Char 'e code;#1100101b
+Char 'f code;#1100110b
+Char 'g code;#1100111b
+Char 'h code;#1101000b
+Char 'i code;#1101001b
+Char 'j code;#1101010b
+Char 'k code;#1101011b
+Char 'l code;#1101100b
+Char 'm code;#1101101b
+Char 'n code;#1101110b
+Char 'o code;#1101111b
+Char 'p code;#1110000b
+Char 'q code;#1110001b
+Char 'r code;#1110010b
+Char 's code;#1110011b
+Char 't code;#1110100b
+Char 'u code;#1110101b
+Char 'v code;#1110110b
+Char 'w code;#1110111b
+Char 'x code;#1111000b
+Char 'y code;#1111001b
+Char 'z code;#1111010b
+
+fn is_lower Bool c:Char
+    b7_to_nat n $c.code
+    b7_to_nat a_n $'a.code
+    b7_to_nat z_n $'z.code
+    ge_nat in_min $n $a_n
+    le_nat in_max $n $z_n
+    and ~ $in_min $in_max
+
+fn is_upper Bool c:Char
+    b7_to_nat n $c.code
+    b7_to_nat a_n $'A.code
+    b7_to_nat z_n $'Z.code
+    ge_nat in_min $n $a_n
+    le_nat in_max $n $z_n
+    and ~ $in_min $in_max
+
+fn to_upper Char c:Char
+    is_lower in_bounds $c
+    fn if_in Char
+        b7_to_nat n $c.code
+        set! new_bits $n.bits $5 #false
+        Nat new_n bits;$new_bits
+        nat_to_b7! new_code $new_n
+        Char ~ code;$new_code
+    just if_not_in $c
+    lazy_if ~ $in_bounds $if_in $if_not_in
+
+fn to_lower Char c:Char
+    is_upper in_bounds $c
+    fn if_in Char
+        b7_to_nat n $c.code
+        set! new_bits $n.bits $5 #true
+        Nat new_n bits;$new_bits
+        nat_to_b7! new_code $new_n
+        Char ~ code;$new_code
+    just if_not_in $c
+    lazy_if ~ $in_bounds $if_in $if_not_in
+
+fn print Unit s:List
+    for_each ~ $put $s
+
+fn println Unit s:List
+    print _ $s
+    put ~ $'|

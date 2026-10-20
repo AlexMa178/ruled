@@ -1,0 +1,158 @@
+union Int pos:Nat zer:Unit neg:Nat
+
+id -1 %neg$0
+id 00 %zer#unit
+id +1 %pos$0
+
+fn mk_pos Int pos_n:Nat
+    id ~ %pos$pos_n
+fn mk_neg Int neg_n:Nat
+    id ~ %neg$neg_n
+
+fn neg Int i:Int
+    % ~ $i pos;$mk_neg zer;$id neg;$mk_pos
+
+fn nat_to_int Int n:Nat
+    dec maybe_prev $n
+    map_or ~ $00 $mk_pos $maybe_prev
+
+fn abs Nat i:Int
+    const always_0 $0
+    % ~ $i pos;$inc zer;$always_0 neg;$inc
+
+fn cmp_zero Ord i:Int
+    const always_gt #gt
+    const always_eq #eq
+    const always_lt #lt
+    % ~ $i pos;$always_gt zer;$always_eq neg;$always_lt
+
+fn signum Int i:Int
+    cmp_zero sign $i
+    if_ord ~ $sign $+1 $00 $-1
+
+fn cmp_int Ord a:Int b:Int
+    cmp_zero a_sign $a
+    cmp_zero b_sign $b
+    just get_lt #lt
+    just get_gt #gt
+    delay4 get_abs_ord $apply_on $cmp_nat $abs $a $b
+    compose2_0 get_inv_abs_ord $get_abs_ord $inv_ord
+    if_ord when_a_pos $b_sign $get_abs_ord $get_gt $get_gt
+    just when_a_zer $b_sign
+    if_ord when_a_neg $b_sign $get_lt $get_lt $get_inv_abs_ord
+    lazy_if_ord ~ $a_sign $when_a_pos $when_a_zer $when_a_neg
+
+fn gt_int Bool a:Int b:Int
+    chain2_2 ~ $a $b $cmp_int $is_gt
+fn eq_int Bool a:Int b:Int
+    chain2_2 ~ $a $b $cmp_int $is_eq
+fn lt_int Bool a:Int b:Int
+    chain2_2 ~ $a $b $cmp_int $is_lt
+fn le_int Bool a:Int b:Int
+    chain2_2 ~ $a $b $cmp_int $is_le
+fn ne_int Bool a:Int b:Int
+    chain2_2 ~ $a $b $cmp_int $is_ne
+fn ge_int Bool a:Int b:Int
+    chain2_2 ~ $a $b $cmp_int $is_ge
+
+fn incs Int i:Int
+    apply3ab as_non_pos $map_or $00 $mk_neg
+    compose2_1 when_neg $dec $as_neg_int
+    compose2_1 when_pos $inc $mk_pos
+    const when_zer $+1
+    % ~ $i pos;$when_pos zer;$when_zer neg;$when_neg
+
+fn decs Int i:Int
+    apply3ab as_non_neg $map_or $00 $mk_pos
+    compose2_1 when_pos $dec $as_non_neg
+    compose2_1 when_neg $inc $mk_neg
+    const when_zer $-1
+    % ~ $i pos;$when_pos zer;$when_zer neg;$when_neg
+
+fn adds Int a:Int b:Int
+    cmp_zero a_sign $a
+    cmp_zero b_sign $b
+    abs a_abs $a
+    abs b_abs $b
+    just get_a $a
+    just get_b $b
+    just get_00 $00
+    fn when_a_pos Int
+        fn when_b_pos Int
+            add sum $a_abs $b_abs
+            nat_to_int ~ $sum
+        fn when_b_neg Int
+            fn when_gt Int
+                sub! diff $a_abs $b_abs
+                nat_to_int ~ $diff
+            fn when_lt Int
+                sub! diff $b_abs $a_abs
+                chain2_1 ~ $diff $nat_to_int $neg
+            cmp_nat ord $a_abs $b_abs
+            lazy_if_ord ~ $ord $when_gt $get_00 $when_lt
+        lazy_if_ord ~ $b_sign $when_b_pos $get_a $when_b_neg
+    fn when_a_neg Int
+        fn when_b_pos Int
+            fn when_gt Int
+                sub! diff $a_abs $b_abs
+                chain2_1 ~ $diff $nat_to_int $neg
+            fn when_lt Int
+                sub! diff $b_abs $a_abs
+                nat_to_int ~ $diff
+            cmp_nat ord $a_abs $b_abs
+            lazy_if_ord ~ $ord $when_gt $get_00 $when_lt
+        fn when_b_neg Int
+            add sum $a_abs $b_abs
+            chain2_1 ~ $sum $nat_to_int $neg
+        lazy_if_ord ~ $b_sign $when_b_pos $get_a $when_b_neg
+    lazy_if_ord ~ $a_sign $when_a_pos $get_b $when_a_neg
+
+fn subs Int a:Int b:Int
+    neg neg_b $b
+    adds ~ $a $neg_b
+
+fn muls Int a:Int b:Int
+    apply_on is_same_sign $eq_ord $cmp_zero $a $b
+    apply_on nat_prod $mul $abs $a $b
+    nat_to_int pos_prod $nat_prod
+    op1_if ~ $is_same_sign $id $neg $pos_prod
+
+fn min_int Int a:Int b:Int
+    cmp_int ord $a $b
+    if_ord ~ $ord $b $a $a
+
+fn max_int Nat a:Int b:Int
+    cmp_int ord $a $b
+    if_ord ~ $ord $a $a $b
+
+id -16 %neg$15
+id -15 %neg$14
+id -14 %neg$13
+id -13 %neg$12
+id -12 %neg$11
+id -11 %neg$10
+id -10 %neg$9
+id -9  %neg$8
+id -8  %neg$7
+id -7  %neg$6
+id -6  %neg$5
+id -5  %neg$4
+id -4  %neg$3
+id -3  %neg$2
+id -2  %neg$1
+
+id +2  %pos$1
+id +3  %pos$2
+id +4  %pos$3
+id +5  %pos$4
+id +6  %pos$5
+id +7  %pos$6
+id +8  %pos$7
+id +9  %pos$8
+id +10 %pos$9
+id +11 %pos$10
+id +12 %pos$11
+id +13 %pos$12
+id +14 %pos$13
+id +15 %pos$14
+id +16 %pos$15

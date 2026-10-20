@@ -1,0 +1,45 @@
+fn range List min:Nat max:Nat
+    just when_done $empty_list
+    fn when_not_done List
+        inc next_min $min
+        range rest $next_min $max
+        push_front ~ $rest $min
+    gt_nat done $min $max
+    lazy_if ~ $done $when_done $when_not_done
+
+fn factorial Nat n:Nat
+    range nums $2 $n
+    foldr ~ $mul $1 $nums
+
+fn len Nat l:List
+    fn f Nat acc:Nat _:?
+        inc ~ $acc
+    foldl ~ $f $0 $l
+
+fn get Option list:List i:Nat
+    fn on_split ? split:SplitOne
+        dec maybe_prev $i
+        apply2a continue $get $split.rest
+        map_or ~ $split.val $continue $maybe_prev
+    split_first maybe_split $list
+    map_opt ~ $on_split $maybe_split
+
+fn get! ? list:List i:Nat
+    get maybe_val $list $i
+    unwrap! ~ $maybe_val
+
+fn set Option list:List i:Nat new_val:?
+    fn on_split Option split:SplitOne
+        dec maybe_prev $i
+        push_front if_zero $split.rest $new_val
+        fn if_non_zero Option prev:Nat
+            set maybe_continued $split.rest $prev $new_val
+            apply2b add_val $push_front $split.val
+            map_opt ~ $add_val $maybe_continued
+        map_or ~ %some$if_zero $if_non_zero $maybe_prev
+    split_first maybe_split $list
+    bind_opt ~ $on_split $maybe_split
+
+fn set! List list:List i:Nat new_val:?
+    set maybe_list $list $i $new_val
+    unwrap! ~ $maybe_list

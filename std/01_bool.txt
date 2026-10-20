@@ -1,0 +1,57 @@
+enum Unit unit
+
+enum Bool false true
+
+fn if ? cond:Bool if_true:? if_false:?
+    # ~ $cond true;$if_true false;$if_false
+fn lazy_if ? cond:Bool if_true:<?> if_false:<?>
+    if f $cond $if_true $if_false
+    f ~
+fn op1_if ? cond:Bool if_true:<?,?> if_false:<?,?> x:?
+    if f $cond $if_true $if_false
+    f ~ $x
+
+fn not Bool a:Bool
+    # ~ $a true;#false false;#true
+
+fn and Bool a:Bool b:Bool
+    # ~ $a true;$b false;#false
+fn or Bool a:Bool b:Bool
+    # ~ $a true;#true false;$b
+fn xor Bool a:Bool b:Bool
+    op1_if ~ $a $not $id $b
+
+fn nand Bool a:Bool b:Bool
+    and c $a $b
+    not ~ $c
+fn nor Bool a:Bool b:Bool
+    or c $a $b
+    not ~ $c
+fn xnor Bool a:Bool b:Bool
+    xor c $a $b
+    not ~ $c
+
+fn only_a Bool a:Bool b:Bool
+    not not_b $b
+    and ~ $a $not_b
+fn only_b Bool a:Bool b:Bool
+    not not_a $a
+    and ~ $not_a $b
+
+fn unless_only_a Bool a:Bool b:Bool
+    only_a c $a $b
+    not ~ $c
+fn unless_only_b Bool a:Bool b:Bool
+    only_b c $a $b
+    not ~ $c
+
+id eq_bool $xnor
+id ne_bool $xor
+
+fn assert! Unit cond:Bool
+    just just_unit #unit
+    lazy_if ~ $cond $just_unit $error!
+
+fn assert_not! Unit cond:Bool
+    not not_cond $cond
+    assert! ~ $not_cond

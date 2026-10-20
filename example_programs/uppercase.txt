@@ -1,0 +1,5 @@
+put _ $'colo
+put _ $'-
+read str
+map upper_str $to_upper $str
+println ~ $upper_str

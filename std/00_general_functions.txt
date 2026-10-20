@@ -1,0 +1,146 @@
+fn id ? ~:?
+    enum Id
+
+fn delay1 <?> f:<?,?> a:?
+    fn ~ ?
+        f ~ $a
+
+fn delay2 <?> f:<?,?,?> a:? b:?
+    fn ~ ?
+        f ~ $a $b
+
+fn delay3 <?> f:<?,?,?,?> a:? b:? c:?
+    fn ~ ?
+        f ~ $a $b $c
+
+fn delay4 <?> f:<?,?,?,?,?> a:? b:? c:? d:?
+    fn ~ ?
+        f ~ $a $b $c $d
+
+fn just <?> x:?
+    delay1 ~ $id $x
+
+fn const <?,?> x:?
+    fn ~ ? _:?
+        id ~ $x
+
+fn curry2a <<?,?>,?> f:<?,?,?>
+    fn ~ <?,?> a:?
+        fn ~ ? b:?
+            f ~ $a $b
+
+fn curry2b <<?,?>,?> f:<?,?,?>
+    fn ~ <?,?> b:?
+        fn ~ ? a:?
+            f ~ $a $b
+
+fn curry3a <<?,?,?>,?> f:<?,?,?,?>
+    fn ~ <?,?,?> a:?
+        fn ~ ? b:? c:?
+            f ~ $a $b $c
+
+fn curry3b <<?,?,?>,?> f:<?,?,?,?>
+    fn ~ <?,?,?> b:?
+        fn ~ ? a:? c:?
+            f ~ $a $b $c
+
+fn curry3c <<?,?,?>,?> f:<?,?,?,?>
+    fn ~ <?,?,?> c:?
+        fn ~ ? a:? b:?
+            f ~ $a $b $c
+
+fn curry3ab <<?,?>,?,?> f:<?,?,?,?>
+    fn ~ <?,?> a:? b:?
+        fn ~ ? c:?
+            f ~ $a $b $c
+
+fn curry3ac <<?,?>,?,?> f:<?,?,?,?>
+    fn ~ <?,?> a:? c:?
+        fn ~ ? b:?
+            f ~ $a $b $c
+
+fn curry3bc <<?,?>,?,?> f:<?,?,?,?>
+    fn ~ <?,?> b:? c:?
+        fn ~ ? a:?
+            f ~ $a $b $c
+
+fn apply2a <?,?> f:<?,?,?> a:?
+    curry2a curried_f $f
+    curried_f ~ $a
+
+fn apply2b <?,?> f:<?,?,?> b:?
+    curry2b curried_f $f
+    curried_f ~ $b
+
+fn apply3a <?,?,?> f:<?,?,?,?> a:?
+    curry3a curried_f $f
+    curried_f ~ $a
+
+fn apply3b <?,?,?> f:<?,?,?,?> b:?
+    curry3b curried_f $f
+    curried_f ~ $b
+
+fn apply3c <?,?,?> f:<?,?,?,?> c:?
+    curry3c curried_f $f
+    curried_f ~ $c
+
+fn apply3ab <?,?> f:<?,?,?,?> a:? b:?
+    curry3ab curried_f $f
+    curried_f ~ $a $b
+
+fn apply3ac <?,?> f:<?,?,?,?> a:? c:?
+    curry3ac curried_f $f
+    curried_f ~ $a $c 
+
+fn apply3bc <?,?> f:<?,?,?,?> b:? c:?
+    curry3bc curried_f $f
+    curried_f ~ $b $c
+
+fn compose2_0 ? f1:<?> f2:<?,?>
+    fn ~ ?
+        f1 temp
+        f2 ~ $temp
+
+fn compose2_1 ? f1:<?,?> f2:<?,?>
+    fn ~ ? x:?
+        f1 temp $x
+        f2 ~ $temp
+
+fn compose2_2 ? f1:<?,?,?> f2:<?,?>
+    fn ~ ? x:? y:?
+        f1 temp $x $y
+        f2 ~ $temp
+
+fn compose2_3 ? f1:<?,?,?,?> f2:<?,?>
+    fn ~ ? x:? y:? z:?
+        f1 temp $x $y $z
+        f2 ~ $temp
+
+fn chain2_0 ? f1:<?> f2:<?,?>
+    compose2_0 f $f1 $f2
+    f ~
+
+fn chain2_1 ? x:? f1:<?,?> f2:<?,?>
+    compose2_1 f $f1 $f2
+    f ~ $x
+
+fn chain2_2 ? x:? y:? f1:<?,?,?> f2:<?,?>
+    compose2_2 f $f1 $f2
+    f ~ $x $y
+
+fn chain2_3 ? x:? y:? z:? f1:<?,?,?,?> f2:<?,?>
+    compose2_3 f $f1 $f2
+    f ~ $x $y $z
+
+fn on <?,?,?> f:<?,?,?> g:<?,?>
+    fn ~ ? x:? y:?
+        g new_x $x
+        g new_y $y
+        f ~ $new_x $new_y
+
+fn apply_on ? f:<?,?,?> g:<?,?> x:? y:?
+    on new_f $f $g
+    new_f ~ $x $y
+
+fn error! ?
+    error! ~

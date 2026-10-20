@@ -1,0 +1,45 @@
+union Option some:? none:Unit
+
+id none %none#unit
+
+fn mk_some Option v:?
+    id ~ %some$v
+fn mk_none Option
+    id ~ $none
+
+fn is_some Bool o:Option
+    const always_true #true
+    const always_false #false
+    % ~ $o some;$always_true none;$always_false
+fn is_none Bool o:Option
+    chain2_1 ~ $o $is_some $not
+
+fn map_opt Option f:<?,?> o:Option
+    const always_none $none
+    compose2_1 f_some $f $mk_some
+    % ~ $o some;$f_some none;$always_none
+
+fn unwrap_or ? when_none:? o:Option
+    const always_when_none $when_none
+    % ~ $o some;$id none;$always_when_none
+
+fn map_or ? when_none:? f:<?,?> o:Option
+    map_opt mapped $f $o
+    unwrap_or ~ $when_none $mapped
+
+fn lazy_map_or ? when_none:<?> f:<<?>,?> o:Option
+    map_or res_f $when_none $f $o
+    res_f ~
+
+fn lazy_unwrap_or ? when_none:<?> o:Option
+    lazy_map_or ~ $when_none $just $o
+
+fn unwrap! ? o:Option
+    lazy_unwrap_or ~ $error! $o
+
+fn join_opt Option o:Option
+    map_or ~ $none $id $o
+
+fn bind_opt Option f:<Option,?> o:Option
+    map_opt mapped $f $o
+    join_opt ~ $mapped

@@ -1,0 +1,35 @@
+enum Ord gt eq lt
+
+fn is_gt Bool ord:Ord
+    # ~ $ord gt;#true eq;#false lt;#false
+fn is_eq Bool ord:Ord
+    # ~ $ord gt;#false eq;#true lt;#false
+fn is_lt Bool ord:Ord
+    # ~ $ord gt;#false eq;#false lt;#true
+
+fn is_le Bool ord:Ord
+    chain2_1 ~ $ord $is_gt $not
+fn is_ne Bool ord:Ord
+    chain2_1 ~ $ord $is_eq $not
+fn is_ge Bool ord:Ord
+    chain2_1 ~ $ord $is_lt $not
+
+fn inv_ord Ord ord:Ord
+    # ~ $ord gt;#lt eq;#eq lt;#gt
+
+fn cmp_ord Ord a:Ord b:Ord
+    # when_a_gt $b gt;#eq eq;#lt lt;#lt
+    # when_a_eq $b gt;#gt eq;#eq lt;#lt
+    # when_a_lt $b gt;#gt eq;#gt lt;#eq
+    # ~ $a gt;$when_a_gt eq;$when_a_eq lt;$when_a_lt
+
+fn eq_ord Bool a:Ord b:Ord
+    chain2_2 ~ $a $b $cmp_ord $is_eq
+fn ne_ord Bool a:Ord b:Ord
+    chain2_2 ~ $a $b $cmp_ord $is_ne
+
+fn if_ord ? ord:Ord if_gt:? if_eq:? if_lt:?
+    # ~ $ord gt;$if_gt eq;$if_eq lt;$if_lt
+fn lazy_if_ord ? ord:Ord if_gt:<?> if_eq:<?> if_lt:<?>
+    if_ord f $ord $if_gt $if_eq $if_lt
+    f ~

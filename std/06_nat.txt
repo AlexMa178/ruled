@@ -1,0 +1,207 @@
+struct Nat bits:List
+
+Nat 0 bits;$empty_list
+
+fn is_zero Bool n:Nat
+    is_empty ~ $n.bits
+
+fn inc Nat n:Nat
+    fn mapping Option bit:Bool
+        # ~ $bit true;%some#false false;$none
+    fn end_f List rest:List
+        apply2a not_head $map_head $not
+        singleton_c ending_1 #true
+        map_or end_cons $ending_1 $not_head $rest.maybe_cons
+        cons_to_list ~ $end_cons
+    map_while_with_end new_bits $mapping $end_f $n.bits
+    Nat ~ bits;$new_bits
+
+fn dec! Nat n:Nat
+    fn mapping Option bit:Bool
+        # ~ $bit true;$none false;%some#true
+    fn end_f List rest:List
+        unwrap! cons $rest.maybe_cons
+        set_head 0_head_cons #false $cons
+        cons_to_list 0_head_list $0_head_cons
+        is_empty is_singleton $cons.tail
+        # ~ $is_singleton true;$empty_list false;$0_head_list
+    map_while_with_end new_bits $mapping $end_f $n.bits
+    Nat ~ bits;$new_bits
+
+fn dec Option n:Nat
+    is_zero n_is_zero $n
+    fn on_nonzero Option
+        dec! dec_n $n
+        mk_some ~ $dec_n
+    just on_zero $none
+    lazy_if ~ $n_is_zero $on_zero $on_nonzero
+
+fn iterate ? f:<?,?> x:? n:Nat
+    dec maybe_prev_n $n
+    f next $x
+    apply3ab on_prev $iterate $f $next
+    map_or ~ $x $on_prev $maybe_prev_n
+
+fn add Nat a:Nat b:Nat
+    fn mapping_fn MapState st:MapState
+        # carry_fn $st.curr_state true;$or false;$and
+        # this_fn $st.curr_state true;$xnor false;$xor
+        carry_fn carry $st.curr_elem.a $st.curr_elem.b
+        this_fn this $st.curr_elem.a $st.curr_elem.b
+        MapState ~ curr_state;$carry curr_elem;$this
+    zip_or zipped $a.bits #false $b.bits #false
+    map_with_state res $mapping_fn #false $zipped
+    apply2b append_1 $push_back #true
+    op1_if added_bits $res.final_state $append_1 $id $res.res_list
+    Nat ~ bits;$added_bits
+
+fn sub Option a:Nat b:Nat
+    fn mapping_fn MapState st:MapState
+        # carry_fn $st.curr_state true;$unless_only_a false;$only_b
+        # this_fn $st.curr_state true;$xnor false;$xor
+        carry_fn carry $st.curr_elem.a $st.curr_elem.b
+        this_fn this $st.curr_elem.a $st.curr_elem.b
+        MapState ~ curr_state;$carry curr_elem;$this
+    zip_or zipped $a.bits #false $b.bits #false
+    map_with_state res $mapping_fn #false $zipped
+    trimr_while added_bits $not $res.res_list
+    Nat res_n bits;$added_bits
+    # ~ $res.final_state true;$none false;%some$res_n
+
+fn sub! Nat a:Nat b:Nat
+    sub maybe_diff $a $b
+    unwrap! ~ $maybe_diff
+
+fn mul Nat a:Nat b:Nat
+    apply2a add_a $add $a
+    iterate ~ $add_a $0 $b
+
+struct EuclidDiv quot:Nat rem:Nat
+
+fn div_mod! EuclidDiv a:Nat b:Nat
+    sub res $a $b
+    EuclidDiv base_case quot;$0 rem;$a
+    fn on_some EuclidDiv new_a:Nat
+        div_mod! inner_res $new_a $b
+        inc inc_quot $inner_res.quot
+        EuclidDiv ~ quot;$inc_quot rem;$inner_res.rem
+    map_or ~ $base_case $on_some $res
+
+fn div_mod Option a:Nat b:Nat
+    delay2 delayed $div_mod! $a $b
+    compose2_0 some_delayed $delayed $mk_some
+    just just_none $none
+    is_zero b_is_zero $b
+    lazy_if ~ $b_is_zero $just_none $some_delayed
+
+fn div! Nat a:Nat b:Nat
+    div_mod! res $a $b
+    id ~ $res.quot
+
+fn div Option a:Nat b:Nat
+    fn get_quot Nat res:EuclidDiv
+        id ~ $res.quot
+    div_mod maybe_res $a $b
+    map_opt ~ $get_quot $maybe_res
+
+fn mod! Nat a:Nat b:Nat
+    div_mod! res $a $b
+    id ~ $res.rem
+
+fn mod Option a:Nat b:Nat
+    fn get_rem Nat res:EuclidDiv
+        id ~ $res.rem
+    div_mod maybe_res $a $b
+    map_opt ~ $get_rem $maybe_res
+
+fn divides Bool a:Nat b:Nat
+    fn if_b_zero Bool
+        is_zero ~ $a
+    fn if_b_nonzero Bool
+        mod! rem $a $b
+        is_zero ~ $rem
+    is_zero b_zero $b
+    lazy_if ~ $b_zero $if_b_zero $if_b_nonzero
+
+fn pow Nat base:Nat exp:Nat
+    apply2a mul_base $mul $base
+    iterate ~ $mul_base $1 $exp
+
+fn cmp_nat Ord a:Nat b:Nat
+    sub res $a $b
+    fn on_some Ord diff:Nat
+        is_zero diff_is_zero $diff
+        # ~ $diff_is_zero true;#eq false;#gt
+    map_or ~ #lt $on_some $res
+
+fn gt_nat Bool a:Nat b:Nat
+    chain2_2 ~ $a $b $cmp_nat $is_gt
+fn eq_nat Bool a:Nat b:Nat
+    chain2_2 ~ $a $b $cmp_nat $is_eq
+fn lt_nat Bool a:Nat b:Nat
+    chain2_2 ~ $a $b $cmp_nat $is_lt
+fn le_nat Bool a:Nat b:Nat
+    chain2_2 ~ $a $b $cmp_nat $is_le
+fn ne_nat Bool a:Nat b:Nat
+    chain2_2 ~ $a $b $cmp_nat $is_ne
+fn ge_nat Bool a:Nat b:Nat
+    chain2_2 ~ $a $b $cmp_nat $is_ge
+
+fn min_nat Nat a:Nat b:Nat
+    cmp_nat ord $a $b
+    if_ord ~ $ord $b $a $a
+
+fn max_nat Nat a:Nat b:Nat
+    cmp_nat ord $a $b
+    if_ord ~ $ord $a $a $b
+
+inc  1  $0
+inc  2  $1
+inc  3  $2
+inc  4  $3
+inc  5  $4
+inc  6  $5
+inc  7  $6
+inc  8  $7
+inc  9  $8
+inc 10  $9
+inc 11 $10
+inc 12 $11
+inc 13 $12
+inc 14 $13
+inc 15 $14
+inc 16 $15
+inc 17 $16
+inc 18 $17
+inc 19 $18
+inc 20 $19
+inc 21 $20
+inc 22 $21
+inc 23 $22
+inc 24 $23
+inc 25 $24
+inc 26 $25
+inc 27 $26
+inc 28 $27
+inc 29 $28
+inc 30 $29
+inc 31 $30
+inc 32 $31
+inc 33 $32
+inc 34 $33
+inc 35 $34
+inc 36 $35
+inc 37 $36
+inc 38 $37
+inc 39 $38
+inc 40 $39
+inc 41 $40
+inc 42 $41
+inc 43 $42
+inc 44 $43
+inc 45 $44
+inc 46 $45
+inc 47 $46
+inc 48 $47
+inc 49 $48
+inc 50 $49

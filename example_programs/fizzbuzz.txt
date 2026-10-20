@@ -1,0 +1,15 @@
+id times $32
+
+list_4 fizz_str $'F $'i $'z $'z
+list_4 buzz_str $'B $'u $'z $'z
+concat fizzbuzz_str $fizz_str $buzz_str
+fn loop Unit n:Nat
+    show_nat n_str $n
+    divides is_fizz $n $3
+    divides is_buzz $n $5
+    if when_not_fizz $is_buzz $buzz_str $n_str
+    if when_fizz $is_buzz $fizzbuzz_str $fizz_str
+    if str $is_fizz $when_fizz $when_not_fizz
+    println ~ $str
+range nums $1 $times
+for_each _ $loop $nums

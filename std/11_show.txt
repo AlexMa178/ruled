@@ -1,0 +1,23 @@
+fn show_hex_digit Char digit:B4
+    # ~ $digit \
+        0000b;$'0 0001b;$'1 0010b;$'2 0011b;$'3 0100b;$'4 0101b;$'5 0110b;$'6 0111b;$'7 \
+        1000b;$'8 1001b;$'9 1010b;$'A 1011b;$'B 1100b;$'C 1101b;$'D 1110b;$'E 1111b;$'F
+
+fn show_digit! Char n:Nat
+    chain2_1 ~ $n $nat_to_b4! $show_hex_digit
+
+fn show_nat List n:Nat
+    div_mod! res $n $10
+    show_digit! digit $res.rem
+    just just_empty $empty_list
+    delay1 get_futher $show_nat $res.quot
+    is_zero quot_is_zero $res.quot
+    lazy_if further $quot_is_zero $just_empty $get_futher
+    push_back ~ $further $digit
+
+fn show_int List i:Int
+    cmp_zero i_sign $i
+    if_ord prefix $i_sign $'plus $'0 $'dash
+    abs abs_i $i
+    show_nat abs_part $abs_i
+    push_front ~ $abs_part $prefix
