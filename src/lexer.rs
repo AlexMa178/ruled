@@ -99,7 +99,6 @@ pub enum Token {
     Fn,
     Scope,
     Break,
-    MatchEnum,
     MatchUnion,
     Put,
     Ask,
@@ -118,13 +117,12 @@ pub enum Token {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValueToken {
-    EnumVariant(String),
     Variable(String),
     StructAccess(String, Vec<String>),
     ByteLiteral(u8),
 }
 
-const VALUE_SYMBOL: [char; 3] = [ '$', '#', '&' ];
+const VALUE_SYMBOL: [char; 2] = [ '$', '&' ];
 
 pub fn lexer(s: &str) -> Result<Tokens, String> {
 
@@ -167,7 +165,6 @@ fn lex_word(word: &str) -> Result<Token, String> {
         "fn" => Token::Fn,
         "scope" => Token::Scope,
         "break" => Token::Break,
-        "#" => Token::MatchEnum,
         "%" => Token::MatchUnion,
         ">" => Token::Put,
         "<" => Token::Get,
@@ -185,7 +182,6 @@ fn lex_word(word: &str) -> Result<Token, String> {
 
 fn lex_value_token(val_str: &str) -> Result<ValueToken, String> {
     Ok(match val_str {
-        w if let Some(v) = w.strip_prefix('#') => ValueToken::EnumVariant(v.to_owned()),
         w if let Some(v) = w.strip_prefix('$') =>
             if v.contains('.') {
                 let parts = v.split('.').map(|s| s.to_owned()).collect::<Vec<_>>();

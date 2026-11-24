@@ -7,11 +7,10 @@ use std::collections::HashMap;
 
 use crate::lexer::ValueToken;
 use crate::type_names::DefinedTypeName;
-use crate::types::{ DataType, DataValue, DefinedType, EnumType, EnumValue, FunctionValue, StructType, Type, UnionType, Value };
+use crate::types::{ DataType, DataValue, DefinedType, FunctionValue, StructType, Type, UnionType, Value };
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Scope {
-    enum_types: HashMap<DefinedTypeName, Rc<EnumType>>,
     union_types: HashMap<DefinedTypeName, Rc<UnionType>>,
     struct_types: HashMap<DefinedTypeName, Rc<StructType>>,
     vars: HashMap<String, DataValue>,
@@ -20,14 +19,7 @@ pub struct Scope {
 impl Scope {
 
     pub fn new(containing_fn: Option<Rc<FunctionValue>>) -> Self {
-        Self { enum_types: HashMap::new(), union_types: HashMap::new(), struct_types: HashMap::new(), vars: HashMap::new(), containing_fn }
-    }
-
-    pub fn add_enum_type(&mut self, e: EnumType) -> Result<(), String> {
-        let name = &e.type_name();
-        let previous = self.enum_types.insert(name.clone(), Rc::new(e));
-        if previous.is_some() { return Err(format!("enum \"{}\" already exists", name.string())); }
-        Ok(())
+        Self { union_types: HashMap::new(), struct_types: HashMap::new(), vars: HashMap::new(), containing_fn }
     }
 
     pub fn add_union_type(&mut self, u: UnionType) -> Result<(), String> {
@@ -62,10 +54,6 @@ impl Scope {
         }
     }
 
-    pub fn get_enum_type_from_name(&self, name: &DefinedTypeName) -> Result<Rc<EnumType>, String> {
-        self.apply_deep(|scope| scope.enum_types.get(name).cloned()).ok_or(format!("could not find enum type \"{}\"", name.string()))
-    }
-
     pub fn get_union_type_from_name(&self, name: &DefinedTypeName) -> Result<Rc<UnionType>, String> {
         self.apply_deep(|scope| scope.union_types.get(name).cloned()).ok_or(format!("could not find union type \"{}\"", name.string()))
     }
@@ -80,22 +68,10 @@ impl Scope {
 
     pub fn value_string(&self, value_token: &ValueToken) -> Result<DataValue, String> {
         match value_token {
-            ValueToken::EnumVariant(v) => self.enum_variant_string(v).map(|ev| DataValue::E(ev)),
             ValueToken::Variable(v) => self.variable_string(v),
             ValueToken::StructAccess(s, fs) => self.struct_access_string(s, fs.iter().map(|f| f.as_str()).collect::<Box<[_]>>().as_ref()),
             ValueToken::ByteLiteral(b) => Ok(DataValue::B(*b)),
         }
-    }
-
-    pub fn enum_variant_string(&self, variant_str: &str) -> Result<EnumValue, String> {
-        self.apply_deep(|s| {
-            for (_, e_type) in &s.enum_types {
-                if let Ok(value) = e_type.value_of(variant_str) {
-                    return Some(value);
-                }
-            };
-            None
-        }).ok_or(format!("could not find variant #\"{variant_str}\""))
     }
 
     pub fn variable_string(&self, variable_str: &str) -> Result<DataValue, String> {
@@ -122,8 +98,6 @@ impl Scope {
 }
 impl Debug for Scope {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        writeln!(f, "  ENUMS")?;
-        for (_, e) in &self.enum_types   { writeln!(f, "    {}", e.debug_type_details())?; }
         writeln!(f, "  UNIONS")?;
         for (_, u) in &self.union_types  { writeln!(f, "    {}", u.debug_type_details())?; }
         writeln!(f, "  STRUCTS")?;

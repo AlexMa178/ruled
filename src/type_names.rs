@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
-use crate::types::{ ByteType, DataType, DefinedType, EnumType, FunctionType, QuestionMarkType, StructType, UnionType };
+use crate::types::{ ByteType, DataType, DefinedType, FunctionType, QuestionMarkType, StructType, UnionType };
 use crate::state::Scope;
 
 #[derive(Clone)]
@@ -126,9 +126,7 @@ impl TypeName {
                         FlatTypeName::Question => Ok(DataType::Q(QuestionMarkType)),
                         FlatTypeName::Byte => Ok(DataType::B(ByteType)),
                         FlatTypeName::Defined(name) =>
-                            if let Ok(e) = EnumType::get_from_scope(name, scope) {
-                                Ok(DataType::E(e))
-                            } else if let Ok(s) = StructType::get_from_scope(name, scope) {
+                            if let Ok(s) = StructType::get_from_scope(name, scope) {
                                 Ok(DataType::S(s))
                             } else if let Ok(u) = UnionType::get_from_scope(name, scope) {
                                 Ok(DataType::U(u))

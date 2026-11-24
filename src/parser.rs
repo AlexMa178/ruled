@@ -3,16 +3,14 @@ use std::io::{ self, Write };
 use std::rc::Rc;
 
 use crate::type_names::{DefinedTypeName, TypeName};
-use crate::types::{ ByteType, DataType, DataValue, DefinedType, EnumMatchBuilder, EnumType, FunctionType, FunctionValue, QuestionMarkType, StructType, StructValueBuilder, Type, UnionType, UnionValue, Value };
+use crate::types::{ ByteType, DataType, DataValue, DefinedType, FunctionType, FunctionValue, QuestionMarkType, StructType, StructValueBuilder, Type, UnionType, UnionValue, Value };
 use crate::state::State;
 use crate::lexer::{ Token, Tokens, ValueToken };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
-    EnumDefLine(EnumDefLine),
     UnionDefLine(UnionDefLine),
     StructDefLine(StructDefLine),
-    MatchEnumLine(MatchEnumLine),
     MatchUnionLine(MatchUnionLine),
     MatchBitLine(MatchBitLine),
     ConstructorLine(ConstructorLine),
@@ -28,10 +26,8 @@ pub enum Expr {
 impl Expr {
 
     pub fn from_tokens(tokens: &mut Tokens) -> Result<Self, String> {
-        if EnumDefLine    ::matches(tokens.peek()?) { return Ok(Self::EnumDefLine    (EnumDefLine    ::from_tokens(tokens)?)); }
         if UnionDefLine   ::matches(tokens.peek()?) { return Ok(Self::UnionDefLine   (UnionDefLine   ::from_tokens(tokens)?)); }
         if StructDefLine  ::matches(tokens.peek()?) { return Ok(Self::StructDefLine  (StructDefLine  ::from_tokens(tokens)?)); }
-        if MatchEnumLine  ::matches(tokens.peek()?) { return Ok(Self::MatchEnumLine  (MatchEnumLine  ::from_tokens(tokens)?)); }
         if MatchUnionLine ::matches(tokens.peek()?) { return Ok(Self::MatchUnionLine (MatchUnionLine ::from_tokens(tokens)?)); }
         if MatchBitLine   ::matches(tokens.peek()?) { return Ok(Self::MatchBitLine   (MatchBitLine   ::from_tokens(tokens)?)); }
         if ConstructorLine::matches(tokens.peek()?) { return Ok(Self::ConstructorLine(ConstructorLine::from_tokens(tokens)?)); }
@@ -47,10 +43,8 @@ impl Expr {
 
     pub fn run(&self, state: &mut State) -> Result<(), String> {
         match self {
-            Self::EnumDefLine    (e) => e.run(state),
             Self::UnionDefLine   (e) => e.run(state),
             Self::StructDefLine  (e) => e.run(state),
-            Self::MatchEnumLine  (e) => e.run(state),
             Self::MatchUnionLine (e) => e.run(state),
             Self::MatchBitLine   (e) => e.run(state),
             Self::ConstructorLine(e) => e.run(state),
@@ -63,30 +57,6 @@ impl Expr {
             Self::BreakLine      (e) => e.run(state),
             Self::CallLine       (e) => e.run(state),
         }
-    }
-
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EnumDefLine {
-    name: DefinedTypeName, variants: Vec<String>
-}
-impl EnumDefLine {
-
-    fn matches(next_token: Token) -> bool {
-        next_token == Token::Enum
-    }
-
-    fn from_tokens(tokens: &mut Tokens) -> Result<Self, String> {
-        tokens.expect_eq(Token::Enum)?;
-        let name = tokens.next_defined_type_name()?;
-        let variants = tokens.until_end_of_line()?.all_as(Tokens::next_word)?;
-        Ok(Self { name, variants })
-    }
-
-    fn run(&self, state: &mut State) -> Result<(), String> {
-        EnumType::new(&self.name, self.variants.iter().map(String::as_str).collect::<Box<[_]>>().as_ref())?
-            .add_to_scope(state.scope().borrow_mut())
     }
 
 }
@@ -147,37 +117,6 @@ impl StructDefLine {
         StructType::new(&self.name, self.fields.iter().map(|(n, t)| (n.as_str(), t)).collect::<Box<[_]>>().as_ref(), state.scope().borrow())?
             .add_to_scope(state.scope().borrow_mut())
 
-    }
-
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MatchEnumLine {
-    ret_name: String, val_str: ValueToken, map: Vec<(String, ValueToken)>
-}
-impl MatchEnumLine {
-
-    fn matches(next_token: Token) -> bool {
-        next_token == Token::MatchEnum
-    }
-
-    fn from_tokens(tokens: &mut Tokens) -> Result<Self, String> {
-        tokens.expect_eq(Token::MatchEnum)?;
-        let ret_name = tokens.next_word()?;
-        let val_str = tokens.next_value()?;
-        let map = tokens.until_end_of_line()?.all_as(Tokens::next_semicolon)?;
-        Ok(Self { ret_name, val_str, map })
-    }
-
-    fn run(&self, state: &mut State) -> Result<(), String> {
-        let val = state.scope().borrow().value_string(&self.val_str)?.assume_enum()?;
-        let mut match_builder = EnumMatchBuilder::new(val.get_type());
-        for (map_variant_str, map_val_str) in &self.map {
-            let map_val = state.scope().borrow().value_string(map_val_str)?;
-            match_builder.add_entry(map_variant_str, map_val)?;
-        }
-        state.set_ret(match_builder.build()?[&val].clone());
-        state.move_ret(&self.ret_name, &DataType::Q(QuestionMarkType))
     }
 
 }
