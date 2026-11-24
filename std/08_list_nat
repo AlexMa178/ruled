@@ -20,7 +20,8 @@ fn get Option list:List i:Nat
     fn on_split Option split:SplitOne
         dec maybe_prev $i
         apply2a continue $get $split.rest
-        map_or ~ %some$split.val $continue $maybe_prev
+        mk_some some_split_val $split.val
+        map_or ~ $some_split_val $continue $maybe_prev
     split_first maybe_split $list
     bind_opt ~ $on_split $maybe_split
 
@@ -40,7 +41,8 @@ fn set Option list:List i:Nat new_val:?
             set maybe_continued $split.rest $prev $new_val
             apply2b add_val $push_front $split.val
             map_opt ~ $add_val $maybe_continued
-        map_or ~ %some$if_zero $if_non_zero $maybe_prev
+        mk_some some_if_zero $if_zero
+        map_or ~ $some_if_zero $if_non_zero $maybe_prev
     split_first maybe_split $list
     bind_opt ~ $on_split $maybe_split
 

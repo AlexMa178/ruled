@@ -24,7 +24,8 @@ fn list_1 List e1:?
     chain2_1 ~ $e1 $singleton_c $cons_to_list
 
 fn cons_to_list List cons:Cons
-    List ~ maybe_cons;%some$cons
+    mk_some some_cons $cons
+    List ~ maybe_cons;$some_cons
 
 fn push_front List list:List elem:?
     Cons c head;$elem tail;$list
@@ -92,14 +93,16 @@ fn foldr_while FoldWhileRes f:<Option,?,?> z:? l:List
 fn triml_while List pred:<Bool,?> l:List
     fn fold_fn Option acc:Unit x:?
         pred test $x
-        # ~ $test true;%some#unit false;$none
+        mk_some some_unit #unit
+        # ~ $test true;$some_unit false;$none
     foldl_while res $fold_fn #unit $l
     id ~ $res.remaining
 
 fn trimr_while List pred:<Bool,?> l:List
     fn fold_fn Option acc:Unit x:?
         pred test $x
-        # ~ $test true;%some#unit false;$none
+        mk_some some_unit #unit
+        # ~ $test true;$some_unit false;$none
     foldr_while res $fold_fn #unit $l
     id ~ $res.remaining
 
@@ -207,14 +210,16 @@ fn map_last List f:<?,?> l:List
 fn all Bool pred:<Bool,?> l:List
     fn fold_fn Option _:Unit x:?
         pred this $x
-        if ~ $this %some#unit $none
+        mk_some some_unit #unit
+        if ~ $this $some_unit $none
     foldl_while res $fold_fn #unit $l
     is_empty ~ $res.remaining
 
 fn any Bool pred:<Bool,?> l:List
     fn fold_fn Option _:Unit x:?
         pred this $x
-        if ~ $this $none %some#unit
+        mk_some some_unit #unit
+        if ~ $this $none $some_unit
     foldl_while res $fold_fn #unit $l
     chain2_1 ~ $res.remaining $is_empty $not
 

@@ -7,7 +7,8 @@ fn is_zero Bool n:Nat
 
 fn inc Nat n:Nat
     fn mapping Option bit:Bool
-        # ~ $bit true;%some#false false;$none
+        mk_some some_false #false
+        # ~ $bit true;$some_false false;$none
     fn end_f List rest:List
         apply2a not_head $map_head $not
         singleton_c ending_1 #true
@@ -18,7 +19,8 @@ fn inc Nat n:Nat
 
 fn dec! Nat n:Nat
     fn mapping Option bit:Bool
-        # ~ $bit true;$none false;%some#true
+        mk_some some_true #true
+        # ~ $bit true;$none false;$some_true
     fn end_f List rest:List
         unwrap! cons $rest.maybe_cons
         set_head 0_head_cons #false $cons
@@ -66,7 +68,8 @@ fn sub Option a:Nat b:Nat
     map_with_state res $mapping_fn #false $zipped
     trimr_while added_bits $not $res.res_list
     Nat res_n bits;$added_bits
-    # ~ $res.final_state true;$none false;%some$res_n
+    mk_some some_res_n $res_n
+    # ~ $res.final_state true;$none false;$some_res_n
 
 fn sub! Nat a:Nat b:Nat
     sub maybe_diff $a $b

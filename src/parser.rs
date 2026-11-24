@@ -3,7 +3,7 @@ use std::io::{ self, Write };
 use std::rc::Rc;
 
 use crate::type_names::{DefinedTypeName, TypeName};
-use crate::types::{ ByteType, DataType, DataValue, DefinedType, EnumMatchBuilder, EnumType, FunctionType, FunctionValue, QuestionMarkType, StructType, StructValueBuilder, Type, UnionType, Value };
+use crate::types::{ ByteType, DataType, DataValue, DefinedType, EnumMatchBuilder, EnumType, FunctionType, FunctionValue, QuestionMarkType, StructType, StructValueBuilder, Type, UnionType, UnionValue, Value };
 use crate::state::State;
 use crate::lexer::{ Token, Tokens, ValueToken };
 
@@ -16,6 +16,7 @@ pub enum Expr {
     MatchUnionLine(MatchUnionLine),
     MatchBitLine(MatchBitLine),
     ConstructorLine(ConstructorLine),
+    VariantLine(VariantLine),
     PutLine(PutLine),
     AskLine(AskLine),
     GetLine(GetLine),
@@ -34,6 +35,7 @@ impl Expr {
         if MatchUnionLine ::matches(tokens.peek()?) { return Ok(Self::MatchUnionLine (MatchUnionLine ::from_tokens(tokens)?)); }
         if MatchBitLine   ::matches(tokens.peek()?) { return Ok(Self::MatchBitLine   (MatchBitLine   ::from_tokens(tokens)?)); }
         if ConstructorLine::matches(tokens.peek()?) { return Ok(Self::ConstructorLine(ConstructorLine::from_tokens(tokens)?)); }
+        if VariantLine    ::matches(tokens.peek()?) { return Ok(Self::VariantLine    (VariantLine    ::from_tokens(tokens)?)); }
         if PutLine        ::matches(tokens.peek()?) { return Ok(Self::PutLine        (PutLine        ::from_tokens(tokens)?)); }
         if AskLine        ::matches(tokens.peek()?) { return Ok(Self::AskLine        (AskLine        ::from_tokens(tokens)?)); }
         if GetLine        ::matches(tokens.peek()?) { return Ok(Self::GetLine        (GetLine        ::from_tokens(tokens)?)); }
@@ -52,6 +54,7 @@ impl Expr {
             Self::MatchUnionLine (e) => e.run(state),
             Self::MatchBitLine   (e) => e.run(state),
             Self::ConstructorLine(e) => e.run(state),
+            Self::VariantLine    (e) => e.run(state),
             Self::PutLine        (e) => e.run(state),
             Self::AskLine        (e) => e.run(state),
             Self::GetLine        (e) => e.run(state),
@@ -90,7 +93,7 @@ impl EnumDefLine {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnionDefLine {
-    name: DefinedTypeName, variants: Vec<(String, TypeName)>
+    name: DefinedTypeName, variants: Vec<(String, Vec<TypeName>)>
 }
 impl UnionDefLine {
 
@@ -101,12 +104,23 @@ impl UnionDefLine {
     fn from_tokens(tokens: &mut Tokens) -> Result<Self, String> {
         tokens.expect_eq(Token::Union)?;
         let name = tokens.next_defined_type_name()?;
-        let variants = tokens.until_end_of_line()?.all_as(Tokens::next_colon)?;
+        tokens.expect_eq(Token::EndOfLine)?;
+        let mut variants = Vec::new();
+        loop {
+            let v_n = tokens.next_variant_name()?;
+            let v_ts = tokens.until_end_of_line()?.all_as(Tokens::next_type_name)?;
+            variants.push((v_n, v_ts));
+            match tokens.peek() {
+                Err(_) => break,
+                Ok(Token::EndFn) => { tokens.expect_eq(Token::EndFn)?; break; },
+                _ => continue,
+            }
+        }
         Ok(Self { name, variants })
     }
 
     fn run(&self, state: &mut State) -> Result<(), String> {
-        UnionType::new(&self.name, self.variants.iter().map(|(n, t)| (n.as_str(), t)).collect::<Box<[_]>>().as_ref(), state.scope().borrow())?
+        UnionType::new(&self.name, self.variants.iter().map(|(n, ts)| (n.as_str(), ts.as_slice())).collect::<Box<[_]>>().as_ref(), state.scope().borrow())?
             .add_to_scope(state.scope().borrow_mut())
     }
 
@@ -191,16 +205,18 @@ impl MatchUnionLine {
         let mut cases = HashMap::new();
         let mut fn_res_type = None;
         for (variant_str, param_str) in &self.map {
-            let (variant_index, variant_type) = val.u_type.variant(variant_str)?;
+            let (variant_index, variant) = val.u_type.variant(variant_str)?;
             let param = state.scope().borrow().value_string(param_str)?.assume_function()?;
-            let &[ref arg_type] = param.f_type.arg_types.as_slice() else { return Err(format!("union match function must have only one argument, \"{param_str:?}\" does not")); };
-            if !arg_type.accepts(variant_type.clone()) { return Err(format!("\"{param_str:?}\" has wrong argument type for union variant: \"{}\" does not accept \"{}\"", arg_type.debug_type_name(), variant_type.debug_type_name())); }
+            let arg_types = &param.f_type.arg_types;
+            let field_types = variant.field_types;
+            if arg_types.len() != field_types.len() { return Err(format!("mismatched argument count for matching \"{variant_str}\"")); }
+            if arg_types.iter().zip(&field_types).any(|(a, f)| !a.accepts(f.clone())) { return Err(format!("mismatched argument count for matching \"{variant_str}\"")); }
             if !fn_res_type.get_or_insert(param.f_type.ret_type.clone()).either_accepts((*param.f_type.ret_type).clone()) { return Err(format!("\"{param_str:?}\" has wrong type in union match")); }
             let previous = cases.insert(variant_index, param);
             if previous.is_some() { return Err(format!("variant \"{variant_str}\" appears more an once in union match")); }
         }
         if !val.u_type.all_indices().iter().all(|v| cases.contains_key(v)) { return Err(format!("non-exhaustive union match")); }
-        cases[&val.variant_index].run(&[*val.value], state)?;
+        cases[&val.variant_index].run(val.values.as_slice(), state)?;
         state.move_ret(&self.ret_name, &fn_res_type.map_or(DataType::Q(QuestionMarkType), |t| *t))
     }
 
@@ -268,6 +284,36 @@ impl ConstructorLine {
         let res = struct_builder.build()?;
         state.set_ret(DataValue::S(res));
         state.move_ret(&self.ret_name, &DataType::S(struct_type))
+    }
+
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VariantLine {
+    variant_name: String, ret_name: String, values: Vec<ValueToken>
+}
+impl VariantLine {
+
+    fn matches(next_token: Token) -> bool {
+        matches!(next_token, Token::VariantName(_))
+    }
+
+    fn from_tokens(tokens: &mut Tokens) -> Result<Self, String> {
+        let variant_name = tokens.next_variant_name()?;
+        let ret_name = tokens.next_word()?;
+        let values = tokens.until_end_of_line()?.all_as(Tokens::next_value)?;
+        Ok(Self { variant_name, ret_name, values })
+    }
+
+    fn run(&self, state: &mut State) -> Result<(), String> {
+        let u_type = state.scope().borrow().get_union_from_variant(&self.variant_name)?;
+        let (variant_index, variant) = u_type.variant(&self.variant_name)?;
+        let values = self.values.iter().map(|v| state.scope().borrow().value_string(v)).collect::<Result<Vec<_>, String>>()?;
+        if variant.field_types.len() != values.len() { return Err(format!("wrong number of values")); }
+        if variant.field_types.iter().zip(&values).any(|(f, val)| !f.accepts(val.get_type())) { return Err(format!("wrong type for value")); }
+        let u_val = UnionValue { variant_index, values, u_type: u_type.clone() };
+        state.set_ret(DataValue::U(u_val));
+        state.move_ret(&self.ret_name, &DataType::U(u_type))
     }
 
 }

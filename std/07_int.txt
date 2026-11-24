@@ -1,16 +1,20 @@
-union Int pos:Nat zer:Unit neg:Nat
+union Int
+    %pos Nat
+    %zer
+    %neg Nat
 
-id -1 %neg$0
-id 00 %zer#unit
-id +1 %pos$0
+%neg -1 $0
+%zer 00
+%pos +1 $0
 
 fn mk_pos Int pos_n:Nat
-    id ~ %pos$pos_n
+    %pos ~ $pos_n
 fn mk_neg Int neg_n:Nat
-    id ~ %neg$neg_n
+    %neg ~ $neg_n
 
 fn neg Int i:Int
-    % ~ $i pos;$mk_neg zer;$id neg;$mk_pos
+    just just_00 $00
+    % ~ $i pos;$mk_neg zer;$just_00 neg;$mk_pos
 
 fn nat_to_int Int n:Nat
     dec maybe_prev $n
@@ -125,34 +129,34 @@ fn max_int Nat a:Int b:Int
     cmp_int ord $a $b
     if_ord ~ $ord $a $a $b
 
-id -16 %neg$15
-id -15 %neg$14
-id -14 %neg$13
-id -13 %neg$12
-id -12 %neg$11
-id -11 %neg$10
-id -10 %neg$9
-id -9  %neg$8
-id -8  %neg$7
-id -7  %neg$6
-id -6  %neg$5
-id -5  %neg$4
-id -4  %neg$3
-id -3  %neg$2
-id -2  %neg$1
+%neg -16 $15
+%neg -15 $14
+%neg -14 $13
+%neg -13 $12
+%neg -12 $11
+%neg -11 $10
+%neg -10 $9
+%neg -9  $8
+%neg -8  $7
+%neg -7  $6
+%neg -6  $5
+%neg -5  $4
+%neg -4  $3
+%neg -3  $2
+%neg -2  $1
 
-id +2  %pos$1
-id +3  %pos$2
-id +4  %pos$3
-id +5  %pos$4
-id +6  %pos$5
-id +7  %pos$6
-id +8  %pos$7
-id +9  %pos$8
-id +10 %pos$9
-id +11 %pos$10
-id +12 %pos$11
-id +13 %pos$12
-id +14 %pos$13
-id +15 %pos$14
-id +16 %pos$15
+%pos +2  $1
+%pos +3  $2
+%pos +4  $3
+%pos +5  $4
+%pos +6  $5
+%pos +7  $6
+%pos +8  $7
+%pos +9  $8
+%pos +10 $9
+%pos +11 $10
+%pos +12 $11
+%pos +13 $12
+%pos +14 $13
+%pos +15 $14
+%pos +16 $15

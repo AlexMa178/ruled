@@ -7,19 +7,25 @@ use crate::type_names::{DefinedTypeName, TypeName};
 use crate::types::{ DataType, DataValue, DefinedType, Type, Value };
 
 #[derive(Clone, PartialEq, Eq)]
+pub struct UnionVariant {
+    pub name: String,
+    pub field_types: Vec<DataType>,
+}
+
+#[derive(Clone, PartialEq, Eq)]
 pub struct UnionType {
     pub name: DefinedTypeName,
-    pub variants: Vec<(String, DataType)>,
+    pub variants: Vec<UnionVariant>,
 }
 impl UnionType {
 
-    pub fn new(name: &DefinedTypeName, variants: &[(&str, &TypeName)], scope: impl Deref<Target = Scope>) -> Result<Self, String> {
+    pub fn new(name: &DefinedTypeName, variants: &[(&str, &[TypeName])], scope: impl Deref<Target = Scope>) -> Result<Self, String> {
         Ok(Self {
             name: name.clone(),
-            variants: variants.iter().map(|&(name, type_name)| Ok((
-                name.to_owned(),
-                type_name.resolve(&scope)?,
-            ))).collect::<Result<Vec<_>, String>>()?,
+            variants: variants.iter().map(|&(name, type_names)| Ok(UnionVariant {
+                name: name.to_owned(),
+                field_types: type_names.iter().map(|type_name| type_name.resolve(&scope)).collect::<Result<Vec<_>, String>>()?,
+            })).collect::<Result<Vec<_>, String>>()?,
         })
     }
 
@@ -27,9 +33,9 @@ impl UnionType {
         (0..self.variants.len()).collect()
     }
 
-    pub fn variant(self: &Rc<Self>, variant: &str) -> Result<(usize, DataType), String> {
-        let i = self.variants.iter().position(|(v, _)| v == variant).ok_or(format!("could not find variant %\"{variant}\""))?;
-        Ok((i, self.variants[i].1.clone()))
+    pub fn variant(self: &Rc<Self>, variant_name: &str) -> Result<(usize, UnionVariant), String> {
+        let i = self.variants.iter().position(|UnionVariant { name, .. }| name == variant_name).ok_or(format!("could not find variant %\"{variant_name}\""))?;
+        Ok((i, self.variants[i].clone()))
     }
 
 }
@@ -38,7 +44,7 @@ impl DefinedType for UnionType {
         self.name.clone()
     }
     fn debug_type_details(&self) -> String {
-        format!("{}{{{}}}", self.name.string(), self.variants.iter().map(|(v_n, v_t)| format!("{v_n}:{}", v_t.debug_type_name())).collect::<Vec<_>>().join("|"))
+        format!("{}{{{}}}", self.name.string(), self.variants.iter().map(|UnionVariant { name: v_n, field_types: v_ts }| format!("{v_n}:{}", v_ts.iter().map(|v_t| v_t.debug_type_name()).collect::<Vec<_>>().join(","))).collect::<Vec<_>>().join("|"))
     }
     fn add_to_scope(self, mut scope: impl DerefMut<Target = Scope>) -> Result<(), String> {
         (*scope).add_union_type(self)
@@ -59,7 +65,7 @@ impl Type for UnionType {
 #[derive(Clone, PartialEq, Eq)]
 pub struct UnionValue {
     pub variant_index: usize,
-    pub value: Box<DataValue>,
+    pub values: Vec<DataValue>,
     pub u_type: Rc<UnionType>,
 }
 impl Value for UnionValue {
@@ -70,6 +76,6 @@ impl Value for UnionValue {
 }
 impl Debug for UnionValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "U[{}/{}={:?}]::{}", self.variant_index, self.u_type.variants[self.variant_index].0, self.value, self.u_type.type_name().string())
+        write!(f, "U[{}/{}={:?}]::{}", self.variant_index, self.u_type.variants[self.variant_index].name, self.values, self.u_type.type_name().string())
     }
 }

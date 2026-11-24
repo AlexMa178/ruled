@@ -1,6 +1,4 @@
-use std::iter;
-
-use crate::type_names::{DefinedTypeName, TypeName};
+use crate::type_names::{ DefinedTypeName, TypeName };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tokens {
@@ -34,6 +32,11 @@ impl Tokens {
     pub fn next_word(&mut self) -> Result<String, String> {
         let next = self.next()?;
         match next { Token::Word(s) => Ok(s), _ => Err(format!("expected word, found \"{next:?}\"")) }
+    }
+
+    pub fn next_variant_name(&mut self) -> Result<String, String> {
+        let next = self.next()?;
+        match next { Token::VariantName(s) => Ok(s), _ => Err(format!("expected variant name, found \"{next:?}\"")) }
     }
 
     pub fn next_defined_type_name(&mut self) -> Result<DefinedTypeName, String> {
@@ -106,6 +109,7 @@ pub enum Token {
     Semicolon(String, ValueToken),
     Word(String),
     DefinedTypeName(DefinedTypeName),
+    VariantName(String),
     TypeName(TypeName),
     Value(ValueToken),
     EndFn,
@@ -115,13 +119,12 @@ pub enum Token {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValueToken {
     EnumVariant(String),
-    UnionVariant(String, Box<ValueToken>),
     Variable(String),
     StructAccess(String, Vec<String>),
     ByteLiteral(u8),
 }
 
-const VALUE_SYMBOL: [char; 4] = [ '$', '#', '%', '&' ];
+const VALUE_SYMBOL: [char; 3] = [ '$', '#', '&' ];
 
 pub fn lexer(s: &str) -> Result<Tokens, String> {
 
@@ -169,6 +172,7 @@ fn lex_word(word: &str) -> Result<Token, String> {
         ">" => Token::Put,
         "<" => Token::Get,
         "^" => Token::Ask,
+        w if let Some(n) = w.strip_prefix('%') => Token::VariantName(n.to_owned()),
         w if let Some((a, b)) = w.split_once(':') => Token::Colon(a.to_owned(), TypeName::new(b)?),
         w if let Some((a, b)) = w.split_once(';') => Token::Semicolon(a.to_owned(), lex_value_token(b)?),
         w if let Ok(t) = DefinedTypeName::new(w) => Token::DefinedTypeName(t),
@@ -182,15 +186,6 @@ fn lex_word(word: &str) -> Result<Token, String> {
 fn lex_value_token(val_str: &str) -> Result<ValueToken, String> {
     Ok(match val_str {
         w if let Some(v) = w.strip_prefix('#') => ValueToken::EnumVariant(v.to_owned()),
-        w if let Some(v) = w.strip_prefix('%') => {
-            let mut split = v.split_inclusive(VALUE_SYMBOL);
-            let name_and_sym = split.next().ok_or(format!("no name for % in %\"{v}\""))?;
-            let mut rev_name_and_sym = name_and_sym.chars().rev();
-            let sym = rev_name_and_sym.next().ok_or(format!("no symbol for % in %\"{v}\""))?;
-            let name = rev_name_and_sym.rev().collect::<String>();
-            let val = iter::once(String::from(sym).as_str()).chain(split).collect::<String>();
-            ValueToken::UnionVariant(name, Box::new(lex_value_token(&val)?))
-        }
         w if let Some(v) = w.strip_prefix('$') =>
             if v.contains('.') {
                 let parts = v.split('.').map(|s| s.to_owned()).collect::<Vec<_>>();

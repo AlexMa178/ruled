@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use crate::lexer::ValueToken;
 use crate::type_names::DefinedTypeName;
-use crate::types::{ DataType, DataValue, DefinedType, EnumType, EnumValue, FunctionValue, StructType, Type, UnionType, UnionValue, Value };
+use crate::types::{ DataType, DataValue, DefinedType, EnumType, EnumValue, FunctionValue, StructType, Type, UnionType, Value };
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Scope {
@@ -74,10 +74,13 @@ impl Scope {
         self.apply_deep(|scope| scope.struct_types.get(name).cloned()).ok_or(format!("could not find struct type \"{}\"", name.string()))
     }
 
+    pub fn get_union_from_variant(&self, variant_name: &str) -> Result<Rc<UnionType>, String> {
+        self.apply_deep(|scope| scope.union_types.values().find(|u| u.variant(variant_name).is_ok()).cloned()).ok_or(format!("could not find any union with variant \"{variant_name}\""))
+    }
+
     pub fn value_string(&self, value_token: &ValueToken) -> Result<DataValue, String> {
         match value_token {
             ValueToken::EnumVariant(v) => self.enum_variant_string(v).map(|ev| DataValue::E(ev)),
-            ValueToken::UnionVariant(v, val) => self.union_variant_string(v, val).map(|uv| DataValue::U(uv)),
             ValueToken::Variable(v) => self.variable_string(v),
             ValueToken::StructAccess(s, fs) => self.struct_access_string(s, fs.iter().map(|f| f.as_str()).collect::<Box<[_]>>().as_ref()),
             ValueToken::ByteLiteral(b) => Ok(DataValue::B(*b)),
@@ -93,22 +96,6 @@ impl Scope {
             };
             None
         }).ok_or(format!("could not find variant #\"{variant_str}\""))
-    }
-
-    pub fn union_variant_string(&self, variant_str: &str, value_token: &ValueToken) -> Result<UnionValue, String> {
-        let value = self.value_string(value_token)?;
-        self.apply_deep(|s| {
-            for (_, u_type) in &s.union_types {
-                if let Ok((variant_i, variant_type)) = u_type.variant(variant_str) {
-                    return Some(if variant_type.accepts(value.get_type()) {
-                        Ok(UnionValue { variant_index: variant_i, value: Box::new(value.clone()), u_type: u_type.clone() })
-                    } else {
-                        Err("wrong type in %... literal".to_owned())
-                    })
-                }
-            };
-            None
-        }).unwrap_or(Err(format!("could not find variant %\"{variant_str}\"")))
     }
 
     pub fn variable_string(&self, variable_str: &str) -> Result<DataValue, String> {
