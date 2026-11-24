@@ -97,7 +97,7 @@ impl FlatTypeName {
     pub fn new(s: &str) -> Result<Self, String> {
         Ok(match s {
             "?" => Self::Question,
-            "&" => Self::Byte,
+            "#" => Self::Byte,
             _ => Self::Defined(DefinedTypeName::new(s)?)
         })
     }

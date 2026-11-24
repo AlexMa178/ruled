@@ -122,7 +122,7 @@ pub enum ValueToken {
     ByteLiteral(u8),
 }
 
-const VALUE_SYMBOL: [char; 2] = [ '$', '&' ];
+const VALUE_SYMBOL: [char; 2] = [ '$', '#' ];
 
 pub fn lexer(s: &str) -> Result<Tokens, String> {
 
@@ -174,7 +174,7 @@ fn lex_word(word: &str) -> Result<Token, String> {
         w if let Some((a, b)) = w.split_once(';') => Token::Semicolon(a.to_owned(), lex_value_token(b)?),
         w if let Ok(t) = DefinedTypeName::new(w) => Token::DefinedTypeName(t),
         w if let Ok(t) = TypeName::new(w) => Token::TypeName(t),
-        w if let Some(i) = w.strip_suffix('&') => Token::MatchBit(i.parse::<u8>().ok().filter(|n| *n < 8).ok_or(format!("invalid bit match \"{i}\""))?),
+        w if let Some(i) = w.strip_suffix('#') => Token::MatchBit(i.parse::<u8>().ok().filter(|n| *n < 8).ok_or(format!("invalid bit match \"{i}\""))?),
         w if VALUE_SYMBOL.into_iter().any(|sym| w.starts_with(sym)) => Token::Value(lex_value_token(w)?),
         s => Token::Word(s.to_owned()),
     })
@@ -190,7 +190,7 @@ fn lex_value_token(val_str: &str) -> Result<ValueToken, String> {
             } else {
                 ValueToken::Variable(v.to_owned())
             },
-        w if let Some(v) = w.strip_prefix('&') =>
+        w if let Some(v) = w.strip_prefix('#') =>
             if v.len() != 8 { return Err("byte needs eight bits".to_owned()) }
             else { ValueToken::ByteLiteral(u8::from_str_radix(v, 2).ok().ok_or("invalid bits for byte".to_owned())?) },
         _ => return Err(format!("could not lex \"{val_str}\" as a value token")),
