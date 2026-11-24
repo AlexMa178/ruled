@@ -56,18 +56,6 @@ pub struct EnumValue {
     variant_index: usize,
     e_type: Rc<EnumType>,
 }
-impl EnumValue {
-
-    pub fn new(variant_index: usize, e_type: Rc<EnumType>) -> Result<Self, String> {
-        let Some(_) = e_type.variants.get(variant_index) else { return Err(format!("\"{}\" does not have variant number \"{variant_index}\"", e_type.type_name().string())); };
-        Ok(Self { variant_index, e_type })
-    }
-
-    pub fn variant_index(&self) -> usize {
-        self.variant_index
-    }
-
-}
 impl Value for EnumValue {
     type Type = Rc<EnumType>;
     fn get_type(&self) -> Self::Type {

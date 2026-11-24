@@ -57,7 +57,7 @@ fn ge_int Bool a:Int b:Int
 
 fn incs Int i:Int
     apply3ab as_non_pos $map_or $00 $mk_neg
-    compose2_1 when_neg $dec $as_neg_int
+    compose2_1 when_neg $dec $as_non_pos
     compose2_1 when_pos $inc $mk_pos
     const when_zer $+1
     % ~ $i pos;$when_pos zer;$when_zer neg;$when_neg

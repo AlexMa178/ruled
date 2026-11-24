@@ -1,9 +1,9 @@
 use std::cell::RefCell;
 use std::fmt::{ Debug, Formatter, Result as FmtResult };
 use std::fs::File;
-use std::io::Write;
+use std::io::{ self, Write };
 use std::rc::Rc;
-use std::collections::{ HashMap, VecDeque };
+use std::collections::HashMap;
 
 use crate::lexer::ValueToken;
 use crate::type_names::DefinedTypeName;
@@ -76,10 +76,11 @@ impl Scope {
 
     pub fn value_string(&self, value_token: &ValueToken) -> Result<DataValue, String> {
         match value_token {
-            ValueToken::EnumVariant(v) => self.enum_variant_string(&v).map(|ev| DataValue::E(ev)),
+            ValueToken::EnumVariant(v) => self.enum_variant_string(v).map(|ev| DataValue::E(ev)),
             ValueToken::UnionVariant(v, val) => self.union_variant_string(v, val).map(|uv| DataValue::U(uv)),
-            ValueToken::Variable(v) => self.variable_string(&v),
+            ValueToken::Variable(v) => self.variable_string(v),
             ValueToken::StructAccess(s, fs) => self.struct_access_string(s, fs.iter().map(|f| f.as_str()).collect::<Box<[_]>>().as_ref()),
+            ValueToken::ByteLiteral(b) => Ok(DataValue::B(*b)),
         }
     }
 
@@ -152,7 +153,7 @@ pub struct State {
     base_scope: Rc<RefCell<Scope>>,
     fn_scopes: Vec<Rc<RefCell<Scope>>>,
     ret: Option<DataValue>,
-    input: VecDeque<usize>,
+    input: Vec<u8>,
     trace_file: File,
 }
 impl State {
@@ -162,7 +163,7 @@ impl State {
             base_scope: Rc::new(RefCell::new(Scope::new(None))),
             fn_scopes: Vec::new(),
             ret: None,
-            input: VecDeque::new(),
+            input: Vec::new(),
             trace_file: File::create("./trace.txt").expect("failed to create trace file"),
         }
     }
@@ -197,12 +198,16 @@ impl State {
         }
     }
 
-    pub fn new_input(&mut self, input: String) {
-        self.input = input.lines().next().unwrap_or("").chars().map(|c| c as usize).collect();
+    pub fn new_input(&mut self) {
+        let mut buf = String::new();
+        let _ = io::stdin().read_line(&mut buf);
+        let line = buf.lines().next().unwrap_or("");
+        let bytes = line.bytes().rev().collect::<Vec<_>>();
+        self.input = bytes;
     }
 
-    pub fn next_input_char(&mut self) -> usize {
-        self.input.pop_front().unwrap_or(0)
+    pub fn next_input_char(&mut self) -> u8 {
+        self.input.pop().unwrap_or(0)
     }
 
     pub fn trace_file(&mut self) -> &mut File {

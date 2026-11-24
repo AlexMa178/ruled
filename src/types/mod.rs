@@ -38,6 +38,7 @@ pub enum DataType {
     S(Rc<StructType>),
     F(FunctionType),
     Q(QuestionMarkType),
+    B(ByteType),
 }
 impl DataType {
 
@@ -64,6 +65,7 @@ impl DataType {
             Self::S(s) => Box::from((**s).clone()),
             Self::F(f) => Box::from((*f).clone()),
             Self::Q(q) => Box::from(*q),
+            Self::B(b) => Box::from(*b),
         }
     }
 
@@ -87,6 +89,7 @@ pub enum DataValue {
     U(UnionValue),
     S(StructValue),
     F(Rc<FunctionValue>),
+    B(u8),
 }
 impl DataValue {
 
@@ -106,6 +109,10 @@ impl DataValue {
         match self { Self::F(f) => Ok(f), _ => Err(format!("value must be a function value, found {self:?}")) }
     }
 
+    pub fn assume_byte(self) -> Result<u8, String> {
+        match self { Self::B(b) => Ok(b), _ => Err(format!("value must be a byte value, found {self:?}")) }
+    }
+
 }
 impl Value for DataValue {
     type Type = DataType;
@@ -115,6 +122,7 @@ impl Value for DataValue {
             Self::U(u) => DataType::U(u.get_type()),
             Self::S(s) => DataType::S(s.get_type()),
             Self::F(f) => DataType::F(f.get_type()),
+            Self::B(_) => DataType::B(ByteType),
         }
     }
 }
@@ -125,6 +133,7 @@ impl Debug for DataValue {
             Self::U(u) => format!("{u:?}"),
             Self::S(s) => format!("{s:?}"),
             Self::F(f) => format!("{f:?}"),
+            Self::B(b) => format!("&{b:08b}"),
         })
     }
 }
@@ -137,5 +146,16 @@ impl Type for QuestionMarkType {
     }
     fn accepts(&self, _other: DataType) -> bool {
         true
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct ByteType;
+impl Type for ByteType {
+    fn debug_type_name(&self) -> String {
+        "#".to_owned()
+    }
+    fn accepts(&self, other: DataType) -> bool {
+        other == DataType::B(ByteType)
     }
 }

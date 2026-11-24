@@ -65,6 +65,11 @@ impl Tokens {
         match next { Token::Semicolon(a, b) => Ok((a, b)), _ => Err(format!("expected semicolon, found \"{next:?}\"")) }
     }
 
+    pub fn next_match_bit(&mut self) -> Result<u8, String> {
+        let next = self.next()?;
+        match next { Token::MatchBit(i) => Ok(i), _ => Err(format!("expected match bit, found \"{next:?}\"")) }
+    }
+
     pub fn all_as<T, F: Fn(&mut Tokens) -> Result<T, String>>(mut self, f: F) -> Result<Vec<T>, String> {
         let mut tokens = Vec::new();
         while !self.is_empty() {
@@ -96,6 +101,7 @@ pub enum Token {
     Put,
     Ask,
     Get,
+    MatchBit(u8),
     Colon(String, TypeName),
     Semicolon(String, ValueToken),
     Word(String),
@@ -112,9 +118,10 @@ pub enum ValueToken {
     UnionVariant(String, Box<ValueToken>),
     Variable(String),
     StructAccess(String, Vec<String>),
+    ByteLiteral(u8),
 }
 
-const VALUE_SYMBOL: [char; 3] = [ '$', '#', '%' ];
+const VALUE_SYMBOL: [char; 4] = [ '$', '#', '%', '&' ];
 
 pub fn lexer(s: &str) -> Result<Tokens, String> {
 
@@ -166,6 +173,7 @@ fn lex_word(word: &str) -> Result<Token, String> {
         w if let Some((a, b)) = w.split_once(';') => Token::Semicolon(a.to_owned(), lex_value_token(b)?),
         w if let Ok(t) = DefinedTypeName::new(w) => Token::DefinedTypeName(t),
         w if let Ok(t) = TypeName::new(w) => Token::TypeName(t),
+        w if let Some(i) = w.strip_suffix('&') => Token::MatchBit(i.parse::<u8>().ok().filter(|n| *n < 8).ok_or(format!("invalid bit match \"{i}\""))?),
         w if VALUE_SYMBOL.into_iter().any(|sym| w.starts_with(sym)) => Token::Value(lex_value_token(w)?),
         s => Token::Word(s.to_owned()),
     })
@@ -191,6 +199,9 @@ fn lex_value_token(val_str: &str) -> Result<ValueToken, String> {
             } else {
                 ValueToken::Variable(v.to_owned())
             },
+        w if let Some(v) = w.strip_prefix('&') =>
+            if v.len() != 8 { return Err("byte needs eight bits".to_owned()) }
+            else { ValueToken::ByteLiteral(u8::from_str_radix(v, 2).ok().ok_or("invalid bits for byte".to_owned())?) },
         _ => return Err(format!("could not lex \"{val_str}\" as a value token")),
     })
 }

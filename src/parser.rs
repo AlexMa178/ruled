@@ -3,7 +3,7 @@ use std::io::{ self, Write };
 use std::rc::Rc;
 
 use crate::type_names::{DefinedTypeName, TypeName};
-use crate::types::{ DataType, DataValue, DefinedType, EnumMatchBuilder, EnumType, EnumValue, FunctionType, FunctionValue, QuestionMarkType, StructType, StructValueBuilder, Type, UnionType, Value };
+use crate::types::{ ByteType, DataType, DataValue, DefinedType, EnumMatchBuilder, EnumType, FunctionType, FunctionValue, QuestionMarkType, StructType, StructValueBuilder, Type, UnionType, Value };
 use crate::state::State;
 use crate::lexer::{ Token, Tokens, ValueToken };
 
@@ -14,6 +14,7 @@ pub enum Expr {
     StructDefLine(StructDefLine),
     MatchEnumLine(MatchEnumLine),
     MatchUnionLine(MatchUnionLine),
+    MatchBitLine(MatchBitLine),
     ConstructorLine(ConstructorLine),
     PutLine(PutLine),
     AskLine(AskLine),
@@ -31,6 +32,7 @@ impl Expr {
         if StructDefLine  ::matches(tokens.peek()?) { return Ok(Self::StructDefLine  (StructDefLine  ::from_tokens(tokens)?)); }
         if MatchEnumLine  ::matches(tokens.peek()?) { return Ok(Self::MatchEnumLine  (MatchEnumLine  ::from_tokens(tokens)?)); }
         if MatchUnionLine ::matches(tokens.peek()?) { return Ok(Self::MatchUnionLine (MatchUnionLine ::from_tokens(tokens)?)); }
+        if MatchBitLine   ::matches(tokens.peek()?) { return Ok(Self::MatchBitLine   (MatchBitLine   ::from_tokens(tokens)?)); }
         if ConstructorLine::matches(tokens.peek()?) { return Ok(Self::ConstructorLine(ConstructorLine::from_tokens(tokens)?)); }
         if PutLine        ::matches(tokens.peek()?) { return Ok(Self::PutLine        (PutLine        ::from_tokens(tokens)?)); }
         if AskLine        ::matches(tokens.peek()?) { return Ok(Self::AskLine        (AskLine        ::from_tokens(tokens)?)); }
@@ -48,6 +50,7 @@ impl Expr {
             Self::StructDefLine  (e) => e.run(state),
             Self::MatchEnumLine  (e) => e.run(state),
             Self::MatchUnionLine (e) => e.run(state),
+            Self::MatchBitLine   (e) => e.run(state),
             Self::ConstructorLine(e) => e.run(state),
             Self::PutLine        (e) => e.run(state),
             Self::AskLine        (e) => e.run(state),
@@ -204,6 +207,41 @@ impl MatchUnionLine {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MatchBitLine {
+    which_bit: u8, ret_name: String, val_str: ValueToken, if_1: ValueToken, if_0: ValueToken
+}
+impl MatchBitLine {
+
+    fn matches(next_token: Token) -> bool {
+        matches!(next_token, Token::MatchBit(_))
+    }
+
+    fn from_tokens(tokens: &mut Tokens) -> Result<Self, String> {
+        let which_bit = tokens.next_match_bit()?;
+        let ret_name = tokens.next_word()?;
+        let val_str = tokens.next_value()?;
+        let if_1 = tokens.next_value()?;
+        let if_0 = tokens.next_value()?;
+        tokens.expect_eq(Token::EndOfLine)?;
+        Ok(Self { which_bit, ret_name, val_str, if_1, if_0 })
+    }
+
+    fn run(&self, state: &mut State) -> Result<(), String> {
+        let val = state.scope().borrow().value_string(&self.val_str)?.assume_byte()?;
+        let i = self.which_bit;
+        let if_1 = state.scope().borrow().value_string(&self.if_1)?;
+        let if_0 = state.scope().borrow().value_string(&self.if_0)?;
+        if !if_1.get_type().either_accepts(if_0.get_type()) { return Err("incompatible types for match bit".to_owned()); }
+        let res = if (val >> i) & 1 == 1 { if_1 } else { if_0 };
+        let res_type = &res.get_type();
+        state.set_ret(res);
+        state.move_ret(&self.ret_name, res_type)?;
+        Ok(())
+    }
+
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstructorLine {
     type_name: DefinedTypeName, ret_name: String, fields: Vec<(String, ValueToken)>
 }
@@ -252,9 +290,7 @@ impl PutLine {
     }
 
     fn run(&self, state: &mut State) -> Result<(), String> {
-        let c_val = state.scope().borrow().value_string(&self.c)?.assume_enum()?;
-        let c_i = c_val.variant_index();
-        let c_b = if c_i < 128 { c_i as u8 } else { return Err(format!("\"{c_val:?}\" has index \"{c_i}\" which is not ASCII")); };
+        let c_b = state.scope().borrow().value_string(&self.c)?.assume_byte()?;
         print!("{}", c_b as char);
         io::stdout().flush().expect("failed to flush");
         Ok(())
@@ -277,9 +313,7 @@ impl AskLine {
     }
 
     fn run(&self, state: &mut State) -> Result<(), String> {
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).ok().ok_or("failed to read input".to_owned())?;
-        state.new_input(input);
+        state.new_input();
         Ok(())
     }
 
@@ -287,7 +321,7 @@ impl AskLine {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GetLine {
-    ret_name: String, type_name: DefinedTypeName
+    ret_name: String
 }
 impl GetLine {
 
@@ -298,16 +332,14 @@ impl GetLine {
     fn from_tokens(tokens: &mut Tokens) -> Result<Self, String> {
         tokens.expect_eq(Token::Get)?;
         let ret_name = tokens.next_word()?;
-        let type_name = tokens.next_defined_type_name()?;
         tokens.expect_eq(Token::EndOfLine)?;
-        Ok(Self { ret_name, type_name })
+        Ok(Self { ret_name })
     }
 
     fn run(&self, state: &mut State) -> Result<(), String> {
-        let variant_index = state.next_input_char();
-        let e_type = state.scope().borrow().get_enum_type_from_name(&self.type_name)?;
-        state.set_ret(DataValue::E(EnumValue::new(variant_index, e_type.clone())?));
-        state.move_ret(&self.ret_name, &DataType::E(e_type))?;
+        let byte = state.next_input_char();
+        state.set_ret(DataValue::B(byte));
+        state.move_ret(&self.ret_name, &DataType::B(ByteType))?;
         Ok(())
     }
 

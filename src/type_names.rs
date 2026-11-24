@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
-use crate::types::{ DataType, DefinedType, EnumType, FunctionType, QuestionMarkType, StructType, UnionType };
+use crate::types::{ ByteType, DataType, DefinedType, EnumType, FunctionType, QuestionMarkType, StructType, UnionType };
 use crate::state::Scope;
 
 #[derive(Clone)]
@@ -89,6 +89,7 @@ impl DefinedTypeName {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum FlatTypeName {
     Question,
+    Byte,
     Defined(DefinedTypeName),
 }
 impl FlatTypeName {
@@ -96,6 +97,7 @@ impl FlatTypeName {
     pub fn new(s: &str) -> Result<Self, String> {
         Ok(match s {
             "?" => Self::Question,
+            "&" => Self::Byte,
             _ => Self::Defined(DefinedTypeName::new(s)?)
         })
     }
@@ -122,6 +124,7 @@ impl TypeName {
                 TypeNameTree::Flat(flat) => {
                     match flat {
                         FlatTypeName::Question => Ok(DataType::Q(QuestionMarkType)),
+                        FlatTypeName::Byte => Ok(DataType::B(ByteType)),
                         FlatTypeName::Defined(name) =>
                             if let Ok(e) = EnumType::get_from_scope(name, scope) {
                                 Ok(DataType::E(e))

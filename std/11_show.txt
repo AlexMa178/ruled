@@ -1,14 +1,12 @@
-fn show_hex_digit Char digit:B4
-    # ~ $digit \
-        0000b;$'0 0001b;$'1 0010b;$'2 0011b;$'3 0100b;$'4 0101b;$'5 0110b;$'6 0111b;$'7 \
-        1000b;$'8 1001b;$'9 1010b;$'A 1011b;$'B 1100b;$'C 1101b;$'D 1110b;$'E 1111b;$'F
-
-fn show_digit! Char n:Nat
-    chain2_1 ~ $n $nat_to_b4! $show_hex_digit
+fn show_digit Char n:Nat
+    byte_to_nat base $'0.code
+    add res $base $n
+    nat_to_byte res_byte $res
+    Char ~ code;$res_byte
 
 fn show_nat List n:Nat
     div_mod! res $n $10
-    show_digit! digit $res.rem
+    show_digit digit $res.rem
     just just_empty $empty_list
     delay1 get_futher $show_nat $res.quot
     is_zero quot_is_zero $res.quot

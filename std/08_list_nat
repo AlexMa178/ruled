@@ -17,12 +17,16 @@ fn len Nat l:List
     foldl ~ $f $0 $l
 
 fn get Option list:List i:Nat
-    fn on_split ? split:SplitOne
+    fn on_split Option split:SplitOne
         dec maybe_prev $i
         apply2a continue $get $split.rest
-        map_or ~ $split.val $continue $maybe_prev
+        map_or ~ %some$split.val $continue $maybe_prev
     split_first maybe_split $list
-    map_opt ~ $on_split $maybe_split
+    bind_opt ~ $on_split $maybe_split
+
+fn get_or ? list:List i:Nat default:?
+    get maybe_val $list $i
+    unwrap_or ~ $default $maybe_val
 
 fn get! ? list:List i:Nat
     get maybe_val $list $i
