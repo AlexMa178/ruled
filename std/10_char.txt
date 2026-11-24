@@ -2,7 +2,7 @@ struct Char code:&
 
 fn put Unit c:Char
     > $c.code
-    id ~ #unit
+    id ~ $unit
 
 fn read List
     fn read_char List
@@ -112,7 +112,7 @@ fn to_upper Char c:Char
     is_lower in_bounds $c
     fn if_in Char
         byte_to_nat n $c.code
-        set! new_bits $n.bits $5 #false
+        set! new_bits $n.bits $5 $false
         Nat new_n bits;$new_bits
         nat_to_byte new_code $new_n
         Char ~ code;$new_code
@@ -123,7 +123,7 @@ fn to_lower Char c:Char
     is_upper in_bounds $c
     fn if_in Char
         byte_to_nat n $c.code
-        set! new_bits $n.bits $5 #true
+        set! new_bits $n.bits $5 $true
         Nat new_n bits;$new_bits
         nat_to_byte new_code $new_n
         Char ~ code;$new_code

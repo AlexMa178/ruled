@@ -1,5 +1,6 @@
 fn id ? ~:?
-    enum Id
+    union Id
+        %id
 
 fn delay1 <?> f:<?,?> a:?
     fn ~ ?

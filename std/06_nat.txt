@@ -7,11 +7,11 @@ fn is_zero Bool n:Nat
 
 fn inc Nat n:Nat
     fn mapping Option bit:Bool
-        mk_some some_false #false
-        # ~ $bit true;$some_false false;$none
+        mk_some some_false $false
+        if ~ $bit $some_false $none
     fn end_f List rest:List
         apply2a not_head $map_head $not
-        singleton_c ending_1 #true
+        singleton_c ending_1 $true
         map_or end_cons $ending_1 $not_head $rest.maybe_cons
         cons_to_list ~ $end_cons
     map_while_with_end new_bits $mapping $end_f $n.bits
@@ -19,14 +19,14 @@ fn inc Nat n:Nat
 
 fn dec! Nat n:Nat
     fn mapping Option bit:Bool
-        mk_some some_true #true
-        # ~ $bit true;$none false;$some_true
+        mk_some some_true $true
+        if ~ $bit $none $some_true
     fn end_f List rest:List
         unwrap! cons $rest.maybe_cons
-        set_head 0_head_cons #false $cons
+        set_head 0_head_cons $false $cons
         cons_to_list 0_head_list $0_head_cons
         is_empty is_singleton $cons.tail
-        # ~ $is_singleton true;$empty_list false;$0_head_list
+        if ~ $is_singleton $empty_list $0_head_list
     map_while_with_end new_bits $mapping $end_f $n.bits
     Nat ~ bits;$new_bits
 
@@ -46,30 +46,30 @@ fn iterate ? f:<?,?> x:? n:Nat
 
 fn add Nat a:Nat b:Nat
     fn mapping_fn MapState st:MapState
-        # carry_fn $st.curr_state true;$or false;$and
-        # this_fn $st.curr_state true;$xnor false;$xor
+        if carry_fn $st.curr_state $or $and
+        if this_fn $st.curr_state $xnor $xor
         carry_fn carry $st.curr_elem.a $st.curr_elem.b
         this_fn this $st.curr_elem.a $st.curr_elem.b
         MapState ~ curr_state;$carry curr_elem;$this
-    zip_or zipped $a.bits #false $b.bits #false
-    map_with_state res $mapping_fn #false $zipped
-    apply2b append_1 $push_back #true
+    zip_or zipped $a.bits $false $b.bits $false
+    map_with_state res $mapping_fn $false $zipped
+    apply2b append_1 $push_back $true
     op1_if added_bits $res.final_state $append_1 $id $res.res_list
     Nat ~ bits;$added_bits
 
 fn sub Option a:Nat b:Nat
     fn mapping_fn MapState st:MapState
-        # carry_fn $st.curr_state true;$unless_only_a false;$only_b
-        # this_fn $st.curr_state true;$xnor false;$xor
+        if carry_fn $st.curr_state $unless_only_a $only_b
+        if this_fn $st.curr_state $xnor $xor
         carry_fn carry $st.curr_elem.a $st.curr_elem.b
         this_fn this $st.curr_elem.a $st.curr_elem.b
         MapState ~ curr_state;$carry curr_elem;$this
-    zip_or zipped $a.bits #false $b.bits #false
-    map_with_state res $mapping_fn #false $zipped
+    zip_or zipped $a.bits $false $b.bits $false
+    map_with_state res $mapping_fn $false $zipped
     trimr_while added_bits $not $res.res_list
     Nat res_n bits;$added_bits
     mk_some some_res_n $res_n
-    # ~ $res.final_state true;$none false;$some_res_n
+    if ~ $res.final_state $none $some_res_n
 
 fn sub! Nat a:Nat b:Nat
     sub maybe_diff $a $b
@@ -134,8 +134,8 @@ fn cmp_nat Ord a:Nat b:Nat
     sub res $a $b
     fn on_some Ord diff:Nat
         is_zero diff_is_zero $diff
-        # ~ $diff_is_zero true;#eq false;#gt
-    map_or ~ #lt $on_some $res
+        if ~ $diff_is_zero $eq $gt
+    map_or ~ $lt $on_some $res
 
 fn gt_nat Bool a:Nat b:Nat
     chain2_2 ~ $a $b $cmp_nat $is_gt

@@ -57,7 +57,7 @@ fn foldl ? f:<?,?,?> z:? l:List
 fn for_each Unit f:<Unit,?> l:List
     fn fold_fn Unit _:Unit x:?
         f ~ $x
-    foldl ~ $fold_fn #unit $l
+    foldl ~ $fold_fn $unit $l
 
 fn rev List l:List
     foldl ~ $push_front $empty_list $l
@@ -86,24 +86,24 @@ fn foldr_while FoldWhileRes f:<Option,?,?> z:? l:List
         map_or fold_maybe_continues $when_none $when_some $maybe_new_folded
         FoldWhileRes fold_stopped folded;$res.folded remaining;$remaining
         is_empty not_already_stopped $res.remaining
-        # ~ $not_already_stopped true;$fold_maybe_continues false;$fold_stopped
+        if ~ $not_already_stopped $fold_maybe_continues $fold_stopped
     FoldWhileRes when_empty folded;$z remaining;$empty_list
     map_or ~ $when_empty $when_non_empty $l.maybe_cons
 
 fn triml_while List pred:<Bool,?> l:List
     fn fold_fn Option acc:Unit x:?
         pred test $x
-        mk_some some_unit #unit
-        # ~ $test true;$some_unit false;$none
-    foldl_while res $fold_fn #unit $l
+        mk_some some_unit $unit
+        if ~ $test $some_unit $none
+    foldl_while res $fold_fn $unit $l
     id ~ $res.remaining
 
 fn trimr_while List pred:<Bool,?> l:List
     fn fold_fn Option acc:Unit x:?
         pred test $x
-        mk_some some_unit #unit
-        # ~ $test true;$some_unit false;$none
-    foldr_while res $fold_fn #unit $l
+        mk_some some_unit $unit
+        if ~ $test $some_unit $none
+    foldr_while res $fold_fn $unit $l
     id ~ $res.remaining
 
 fn map_with_end List f:<?,?> end:List l:List
@@ -210,17 +210,17 @@ fn map_last List f:<?,?> l:List
 fn all Bool pred:<Bool,?> l:List
     fn fold_fn Option _:Unit x:?
         pred this $x
-        mk_some some_unit #unit
+        mk_some some_unit $unit
         if ~ $this $some_unit $none
-    foldl_while res $fold_fn #unit $l
+    foldl_while res $fold_fn $unit $l
     is_empty ~ $res.remaining
 
 fn any Bool pred:<Bool,?> l:List
     fn fold_fn Option _:Unit x:?
         pred this $x
-        mk_some some_unit #unit
+        mk_some some_unit $unit
         if ~ $this $none $some_unit
-    foldl_while res $fold_fn #unit $l
+    foldl_while res $fold_fn $unit $l
     chain2_1 ~ $res.remaining $is_empty $not
 
 fn contains Bool pred:<Bool,?,?> l:List x:?

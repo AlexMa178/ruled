@@ -1,9 +1,17 @@
-enum Unit unit
+union Unit
+    %unit
+%unit unit
 
-enum Bool false true
+union Bool
+    %false
+    %true
+%false false
+%true true
 
 fn if ? cond:Bool if_true:? if_false:?
-    # ~ $cond true;$if_true false;$if_false
+    just just_if_true $if_true
+    just just_if_false $if_false
+    % ~ $cond true;$just_if_true false;$just_if_false
 fn lazy_if ? cond:Bool if_true:<?> if_false:<?>
     if f $cond $if_true $if_false
     f ~
@@ -12,12 +20,12 @@ fn op1_if ? cond:Bool if_true:<?,?> if_false:<?,?> x:?
     f ~ $x
 
 fn not Bool a:Bool
-    # ~ $a true;#false false;#true
+    if ~ $a $false $true
 
 fn and Bool a:Bool b:Bool
-    # ~ $a true;$b false;#false
+    if ~ $a $b $false
 fn or Bool a:Bool b:Bool
-    # ~ $a true;#true false;$b
+    if ~ $a $true $b
 fn xor Bool a:Bool b:Bool
     op1_if ~ $a $not $id $b
 
@@ -49,7 +57,7 @@ id eq_bool $xnor
 id ne_bool $xor
 
 fn assert! Unit cond:Bool
-    just just_unit #unit
+    just just_unit $unit
     lazy_if ~ $cond $just_unit $error!
 
 fn assert_not! Unit cond:Bool

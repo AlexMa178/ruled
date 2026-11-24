@@ -25,10 +25,10 @@ fn abs Nat i:Int
     % ~ $i pos;$inc zer;$always_0 neg;$inc
 
 fn cmp_zero Ord i:Int
-    const always_gt #gt
-    const always_eq #eq
-    const always_lt #lt
-    % ~ $i pos;$always_gt zer;$always_eq neg;$always_lt
+    const always_gt $gt
+    just just_eq $eq
+    const always_lt $lt
+    % ~ $i pos;$always_gt zer;$just_eq neg;$always_lt
 
 fn signum Int i:Int
     cmp_zero sign $i
@@ -37,8 +37,8 @@ fn signum Int i:Int
 fn cmp_int Ord a:Int b:Int
     cmp_zero a_sign $a
     cmp_zero b_sign $b
-    just get_lt #lt
-    just get_gt #gt
+    just get_lt $lt
+    just get_gt $gt
     delay4 get_abs_ord $apply_on $cmp_nat $abs $a $b
     compose2_0 get_inv_abs_ord $get_abs_ord $inv_ord
     if_ord when_a_pos $b_sign $get_abs_ord $get_gt $get_gt

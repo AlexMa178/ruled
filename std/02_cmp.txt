@@ -1,11 +1,26 @@
-enum Ord gt eq lt
+union Ord
+    %gt
+    %eq
+    %lt
+%gt gt
+%eq eq
+%lt lt
+
+fn if_ord ? ord:Ord if_gt:? if_eq:? if_lt:?
+    just just_if_gt $if_gt
+    just just_if_eq $if_eq
+    just just_if_lt $if_lt
+    % ~ $ord gt;$just_if_gt eq;$just_if_eq lt;$just_if_lt
+fn lazy_if_ord ? ord:Ord if_gt:<?> if_eq:<?> if_lt:<?>
+    if_ord f $ord $if_gt $if_eq $if_lt
+    f ~
 
 fn is_gt Bool ord:Ord
-    # ~ $ord gt;#true eq;#false lt;#false
+    if_ord ~ $ord $true $false $false
 fn is_eq Bool ord:Ord
-    # ~ $ord gt;#false eq;#true lt;#false
+    if_ord ~ $ord $false $true $false
 fn is_lt Bool ord:Ord
-    # ~ $ord gt;#false eq;#false lt;#true
+    if_ord ~ $ord $false $false $true
 
 fn is_le Bool ord:Ord
     chain2_1 ~ $ord $is_gt $not
@@ -15,21 +30,15 @@ fn is_ge Bool ord:Ord
     chain2_1 ~ $ord $is_lt $not
 
 fn inv_ord Ord ord:Ord
-    # ~ $ord gt;#lt eq;#eq lt;#gt
+    if_ord ~ $ord $lt $eq $gt
 
 fn cmp_ord Ord a:Ord b:Ord
-    # when_a_gt $b gt;#eq eq;#lt lt;#lt
-    # when_a_eq $b gt;#gt eq;#eq lt;#lt
-    # when_a_lt $b gt;#gt eq;#gt lt;#eq
-    # ~ $a gt;$when_a_gt eq;$when_a_eq lt;$when_a_lt
+    if_ord when_a_gt $b $eq $lt $lt
+    if_ord when_a_eq $b $gt $eq $lt
+    if_ord when_a_lt $b $gt $gt $eq
+    if_ord ~ $a $when_a_gt $when_a_eq $when_a_lt
 
 fn eq_ord Bool a:Ord b:Ord
     chain2_2 ~ $a $b $cmp_ord $is_eq
 fn ne_ord Bool a:Ord b:Ord
     chain2_2 ~ $a $b $cmp_ord $is_ne
-
-fn if_ord ? ord:Ord if_gt:? if_eq:? if_lt:?
-    # ~ $ord gt;$if_gt eq;$if_eq lt;$if_lt
-fn lazy_if_ord ? ord:Ord if_gt:<?> if_eq:<?> if_lt:<?>
-    if_ord f $ord $if_gt $if_eq $if_lt
-    f ~

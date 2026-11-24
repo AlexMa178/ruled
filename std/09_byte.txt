@@ -1,25 +1,25 @@
 fn byte_to_nat Nat b:&
-    0& bit0 $b #true #false
-    1& bit1 $b #true #false
-    2& bit2 $b #true #false
-    3& bit3 $b #true #false
-    4& bit4 $b #true #false
-    5& bit5 $b #true #false
-    6& bit6 $b #true #false
-    7& bit7 $b #true #false
+    0& bit0 $b $true $false
+    1& bit1 $b $true $false
+    2& bit2 $b $true $false
+    3& bit3 $b $true $false
+    4& bit4 $b $true $false
+    5& bit5 $b $true $false
+    6& bit6 $b $true $false
+    7& bit7 $b $true $false
     list_8 bits $bit0 $bit1 $bit2 $bit3 $bit4 $bit5 $bit6 $bit7
     trimr_while trim_bits $not $bits
     Nat ~ bits;$trim_bits
 
 fn nat_to_byte & n:Nat
-    get_or bit0 $n.bits $0 #false
-    get_or bit1 $n.bits $1 #false
-    get_or bit2 $n.bits $2 #false
-    get_or bit3 $n.bits $3 #false
-    get_or bit4 $n.bits $4 #false
-    get_or bit5 $n.bits $5 #false
-    get_or bit6 $n.bits $6 #false
-    get_or bit7 $n.bits $7 #false
+    get_or bit0 $n.bits $0 $false
+    get_or bit1 $n.bits $1 $false
+    get_or bit2 $n.bits $2 $false
+    get_or bit3 $n.bits $3 $false
+    get_or bit4 $n.bits $4 $false
+    get_or bit5 $n.bits $5 $false
+    get_or bit6 $n.bits $6 $false
+    get_or bit7 $n.bits $7 $false
     fn f1 &
         fn f11 &
             fn f111 &

@@ -1,4 +1,0 @@
-scope test
-    nat_to_byte byte $10
-    id ~ #unit
-    break

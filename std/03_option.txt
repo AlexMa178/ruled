@@ -10,8 +10,8 @@ fn mk_none Option
     id ~ $none
 
 fn is_some Bool o:Option
-    const always_true #true
-    just just_false #false
+    const always_true $true
+    just just_false $false
     % ~ $o some;$always_true none;$just_false
 fn is_none Bool o:Option
     chain2_1 ~ $o $is_some $not
