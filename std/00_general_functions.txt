@@ -2,6 +2,12 @@ fn id ? ~:?
     union Id
         %id
 
+fn keep2a ? a:? b:?
+    id ~ $a
+
+fn keep2b ? a:? b:?
+    id ~ $b
+
 fn delay1 <?> f:<?,?> a:?
     fn ~ ?
         f ~ $a
