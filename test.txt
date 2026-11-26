@@ -1,6 +1,5 @@
 scope test
-    list_2 tail $true $true
-    %cons l0 $true $tail
-    over l1 $l0 $.last $not
+    %some o0 $true
+    over? o1 $o0 $?some $not
     id ~ $unit
     break

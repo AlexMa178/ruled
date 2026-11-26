@@ -42,3 +42,56 @@ fn join_opt Option o:Option
 fn bind_opt Option f:<Option,?> o:Option
     map_opt mapped $f $o
     join_opt ~ $mapped
+
+union Affine
+    %affine <Option,?>
+
+fn mut_of? Option s:? a:Affine
+    % a_f $a affine;$id
+    a_f ~ $s
+
+fn view? Option s:? a:Affine
+    mut_of? maybe_m $s $a
+    map_opt ~ $view_mut $maybe_m
+
+fn view?! ? s:? a:Affine
+    mut_of? maybe_m $s $a
+    unwrap! ~ $maybe_m
+
+fn set?? Option s:? a:Affine new_val:?
+    apply2b set_new_val $set_mut $new_val
+    mut_of? maybe_m $s $a
+    map_opt ~ $set_new_val $maybe_m
+
+fn set? ? s:? a:Affine new_val:?
+    set?? maybe_res $s $a $new_val
+    unwrap_or ~ $s $maybe_res
+
+fn set?! ? s:? a:Affine new_val:?
+    set?? maybe_res $s $a $new_val
+    unwrap! ~ $maybe_res
+
+fn over?? Option s:? a:Affine f:<?,?>
+    apply2b over_f $over_mut $f
+    mut_of? maybe_m $s $a
+    map_opt ~ $over_f $maybe_m
+
+fn over? ? s:? a:Affine f:<?,?>
+    over?? maybe_res $s $a $f
+    unwrap_or ~ $s $maybe_res
+
+fn over?! ? s:? a:Affine f:<?,?>
+    over?? maybe_res $s $a $f
+    unwrap! ~ $maybe_res
+
+fn lens_to_affine Affine lens:Lens
+    % lens_f $lens lens;$id
+    compose2_1 affine_f $lens_f $mk_some
+    %affine ~ $affine_f
+
+scope ?some
+    fn some_mut Option o:Option
+        fn when_some Mut val:?
+            %mut ~ $val $mk_some
+        map_opt ~ $when_some $o 
+    %affine ~ $some_mut
