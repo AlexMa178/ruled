@@ -58,8 +58,8 @@ fn add Nat a:Nat b:Nat
     fn mapping_fn MapState st:MapState
         if carry_fn $st.curr_state $or $and
         if this_fn $st.curr_state $xnor $xor
-        carry_fn carry $st.curr_elem.a $st.curr_elem.b
-        this_fn this $st.curr_elem.a $st.curr_elem.b
+        apply_pair carry $carry_fn $st.curr_elem
+        apply_pair this $this_fn $st.curr_elem
         MapState ~ curr_state;$carry curr_elem;$this
     nat_bits b_bits $a
     nat_bits a_bits $b
@@ -73,8 +73,8 @@ fn sub Option a:Nat b:Nat
     fn mapping_fn MapState st:MapState
         if carry_fn $st.curr_state $unless_only_a $only_b
         if this_fn $st.curr_state $xnor $xor
-        carry_fn carry $st.curr_elem.a $st.curr_elem.b
-        this_fn this $st.curr_elem.a $st.curr_elem.b
+        apply_pair carry $carry_fn $st.curr_elem
+        apply_pair this $this_fn $st.curr_elem
         MapState ~ curr_state;$carry curr_elem;$this
     nat_bits a_bits $a
     nat_bits b_bits $b

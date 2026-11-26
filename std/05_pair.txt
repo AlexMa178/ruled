@@ -18,3 +18,8 @@ scope .snd
             %pair ~ $fst $new_snd
         %mut ~ $snd $set_snd
     %lens ~ $snd_mut
+
+fn apply_pair ? f:<?,?,?> p:Pair
+    view a $p $.fst
+    view b $p $.snd
+    f ~ $a $b

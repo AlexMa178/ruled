@@ -187,7 +187,6 @@ fn map_with_state MapStateResult f:<MapState,MapState> state:? l:List
     MapStateResult initial res_list;$empty_list final_state;$state
     foldl ~ $fold_fn $initial $l
 
-struct Zip a:? b:?
 fn zip_or List list_a:List cont_a:? list_b:List cont_b:?
     is_empty a_empty $list_a
     is_empty b_empty $list_b
@@ -202,8 +201,8 @@ fn zip_or List list_a:List cont_a:? list_b:List cont_b:?
         maybe_cons b_c $list_b
         unwrap_or cons_b $b_1 $b_c
         view b_head $cons_b $.head
-        view b_tail $cons_b $.tail 
-        Zip this a;$a_head b;$b_head
+        view b_tail $cons_b $.tail
+        %pair this $a_head $b_head
         zip_or rest $a_tail $cont_a $b_tail $cont_b
         push_front ~ $rest $this
     just just_empty_list $empty_list
