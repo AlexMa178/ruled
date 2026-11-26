@@ -1,6 +1,9 @@
 union Pair
     %pair ? ?
 
+fn mk_pair Pair fst:? snd:?
+    %pair ~ $fst $snd
+
 scope .fst
     fn fst_mut Mut p:Pair
         % fst $p pair;$keep2a

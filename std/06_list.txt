@@ -210,11 +210,6 @@ fn zip_or List list_a:List cont_a:? list_b:List cont_b:?
 
 struct SplitOne val:? rest:List
 
-fn split_first_c SplitOne cons:Cons
-    view head $cons $.head
-    view tail $cons $.tail
-    SplitOne ~ val;$head rest;$tail
-
 fn split_last_c SplitOne cons:Cons
     view head $cons $.head
     view tail $cons $.tail
@@ -226,6 +221,10 @@ fn split_last_c SplitOne cons:Cons
     map_or ~ $last_split $when_further $maybe_further
 
 fn split_first Option list:List
+    fn split_first_c SplitOne cons:Cons
+        view head $cons $.head
+        view tail $cons $.tail
+        SplitOne ~ val;$head rest;$tail
     maybe_cons c $list
     map_opt ~ $split_first_c $c
 
@@ -233,16 +232,9 @@ fn split_last SplitOne list:List
     maybe_cons c $list
     map_opt ~ $split_last_c $c
 
-fn first_c ? cons:Cons
-    split_first_c split $cons
-    id ~ $split.val
-
-fn last_c ? cons:Cons
-    split_last_c split $cons
-    id ~ $split.val
-
 fn first Option list:List
     maybe_cons c $list
+    apply2b first_c $view $.head
     map_opt ~ $first_c $c
 
 fn map_first List f:<?,?> l:List
