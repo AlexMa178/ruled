@@ -1,0 +1,6 @@
+scope test
+    list_2 tail $true $true
+    %cons l0 $true $tail
+    over l1 $l0 $.last $not
+    id ~ $unit
+    break

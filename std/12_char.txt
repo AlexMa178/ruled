@@ -112,8 +112,9 @@ fn to_upper Char c:Char
     is_lower in_bounds $c
     fn if_in Char
         byte_to_nat n $c.code
-        set! new_bits $n.bits $5 $false
-        Nat new_n bits;$new_bits
+        nat_bits bits $n
+        set_ind! new_bits $bits $5 $false
+        %nat_bits new_n $new_bits
         nat_to_byte new_code $new_n
         Char ~ code;$new_code
     just if_not_in $c
@@ -123,8 +124,9 @@ fn to_lower Char c:Char
     is_upper in_bounds $c
     fn if_in Char
         byte_to_nat n $c.code
-        set! new_bits $n.bits $5 $true
-        Nat new_n bits;$new_bits
+        nat_bits bits $n
+        set_ind! new_bits $bits $5 $true
+        %nat_bits new_n $new_bits
         nat_to_byte new_code $new_n
         Char ~ code;$new_code
     just if_not_in $c

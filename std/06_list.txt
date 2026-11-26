@@ -1,42 +1,79 @@
-struct List maybe_cons:Option
-struct Cons head:? tail:List
+union List
+    %list Option
 
-fn set_head Cons v:? cons:Cons
-    Cons ~ head;$v tail;$cons.tail
+%list empty_list $none
 
-fn map_head Cons f:<?,?> cons:Cons
-    f new_head $cons.head
-    set_head ~ $new_head $cons
+union Cons
+    %cons ? List
 
-fn map_tail Cons f:<List,List> cons:Cons
-    f new_tail $cons.tail
-    Cons ~ head;$cons.head tail;$new_tail
-
-List empty_list maybe_cons;$none
+fn maybe_cons Option list:List
+    % ~ $list list;$id
 
 fn is_empty Bool list:List
-    is_none ~ $list.maybe_cons
+    maybe_cons c $list
+    is_none ~ $c
 
-fn singleton_c Cons x:?
-    Cons ~ head;$x tail;$empty_list
-
-fn list_1 List e1:?
-    chain2_1 ~ $e1 $singleton_c $cons_to_list
+fn singleton_cons Cons x:?
+    %cons ~ $x $empty_list
 
 fn cons_to_list List cons:Cons
-    mk_some some_cons $cons
-    List ~ maybe_cons;$some_cons
+    %some some_cons $cons
+    %list ~ $some_cons
+
+scope .head
+    fn head_mut Mut cons:Cons
+        % head $cons cons;$keep2a
+        % tail $cons cons;$keep2b
+        fn set_head Cons new_head:?
+            %cons ~ $new_head $tail
+        %mut ~ $head $set_head
+    %lens ~ $head_mut
+
+scope .last
+    fn last_mut Mut cons:Cons
+        fn get_last ? curr:Cons
+            % curr_head $curr cons;$keep2a
+            % curr_tail $curr cons;$keep2b
+            maybe_cons tail_c $curr_tail
+            map_or ~ $curr_head $get_last $tail_c
+        fn set_last Cons curr:Cons new_val:?
+            % curr_head $curr cons;$keep2a
+            % curr_tail $curr cons;$keep2b
+            singleton_cons when_empty $new_val
+            fn when_non_empty ? next:Cons
+                set_last new_tail_cons $next $new_val
+                cons_to_list new_tail $new_tail_cons
+                %cons ~ $curr_head $new_tail
+            maybe_cons tail_c $curr_tail
+            map_or ~ $when_empty $when_non_empty $tail_c
+        get_last last $cons
+        apply2a cons_set_last $set_last $cons
+        %mut ~ $last $cons_set_last
+    %lens ~ $last_mut
+
+scope .tail
+    fn tail_mut Mut cons:Cons
+        % head $cons cons;$keep2a
+        % tail $cons cons;$keep2b
+        fn set_tail Cons new_tail:List
+            %cons ~ $head $new_tail
+        %mut ~ $tail $set_tail
+    %lens ~ $tail_mut
+
+fn list_1 List e1:?
+    chain2_1 ~ $e1 $singleton_cons $cons_to_list
 
 fn push_front List list:List elem:?
-    Cons c head;$elem tail;$list
+    %cons c $elem $list
     cons_to_list ~ $c
 
 fn concat List a:List b:List
     fn when_a_non_empty List cons:Cons
         apply2b concat_b $concat $b
-        map_tail res_cons $concat_b $cons
+        over res_cons $cons $.tail $concat_b
         cons_to_list ~ $res_cons
-    map_or ~ $b $when_a_non_empty $a.maybe_cons
+    maybe_cons a_c $a
+    map_or ~ $b $when_a_non_empty $a_c
 
 fn push_back List list:List elem:?
     list_1 singleton $elem
@@ -44,15 +81,21 @@ fn push_back List list:List elem:?
 
 fn foldr ? f:<?,?,?> z:? l:List
     fn when_non_empty ? cons:Cons
-        foldr res $f $z $cons.tail
-        f ~ $res $cons.head
-    map_or ~ $z $when_non_empty $l.maybe_cons
+        view head $cons $.head
+        view tail $cons $.tail
+        foldr res $f $z $tail
+        f ~ $res $head
+    maybe_cons c $l
+    map_or ~ $z $when_non_empty $c
 
 fn foldl ? f:<?,?,?> z:? l:List
     fn when_non_empty ? cons:Cons
-        f new_z $z $cons.head
-        foldl ~ $f $new_z $cons.tail
-    map_or ~ $z $when_non_empty $l.maybe_cons
+        view head $cons $.head
+        view tail $cons $.tail
+        f new_z $z $head
+        foldl ~ $f $new_z $tail
+    maybe_cons c $l
+    map_or ~ $z $when_non_empty $c
 
 fn for_each Unit f:<Unit,?> l:List
     fn fold_fn Unit _:Unit x:?
@@ -66,20 +109,25 @@ struct FoldWhileRes folded:? remaining:List
 
 fn foldl_while FoldWhileRes f:<Option,?,?> z:? l:List
     fn when_non_empty FoldWhileRes cons:Cons
-        f maybe_new_z $z $cons.head
+        view head $cons $.head
+        view tail $cons $.tail
+        f maybe_new_z $z $head
         fn when_some FoldWhileRes new_z:?
-            foldl_while ~ $f $new_z $cons.tail
+            foldl_while ~ $f $new_z $tail
         cons_to_list remaining $cons
         FoldWhileRes when_none folded;$z remaining;$remaining
         map_or ~ $when_none $when_some $maybe_new_z
     FoldWhileRes when_empty folded;$z remaining;$empty_list
-    map_or ~ $when_empty $when_non_empty $l.maybe_cons
+    maybe_cons c $l
+    map_or ~ $when_empty $when_non_empty $c
 
 fn foldr_while FoldWhileRes f:<Option,?,?> z:? l:List
     fn when_non_empty FoldWhileRes cons:Cons
-        foldr_while res $f $z $cons.tail
-        push_front remaining $res.remaining $cons.head
-        f maybe_new_folded $res.folded $cons.head
+        view head $cons $.head
+        view tail $cons $.tail
+        foldr_while res $f $z $tail
+        push_front remaining $res.remaining $head
+        f maybe_new_folded $res.folded $head
         FoldWhileRes when_none folded;$res.folded remaining;$remaining
         fn when_some FoldWhileRes new_folded:?
             FoldWhileRes ~ folded;$new_folded remaining;$empty_list
@@ -88,7 +136,8 @@ fn foldr_while FoldWhileRes f:<Option,?,?> z:? l:List
         is_empty not_already_stopped $res.remaining
         if ~ $not_already_stopped $fold_maybe_continues $fold_stopped
     FoldWhileRes when_empty folded;$z remaining;$empty_list
-    map_or ~ $when_empty $when_non_empty $l.maybe_cons
+    maybe_cons c $l
+    map_or ~ $when_empty $when_non_empty $c
 
 fn triml_while List pred:<Bool,?> l:List
     fn fold_fn Option acc:Unit x:?
@@ -144,12 +193,18 @@ fn zip_or List list_a:List cont_a:? list_b:List cont_b:?
     is_empty b_empty $list_b
     and both_empty $a_empty $b_empty
     fn when_either_non_empty List
-        singleton_c a_1 $cont_a
-        unwrap_or cons_a $a_1 $list_a.maybe_cons
-        singleton_c b_1 $cont_b
-        unwrap_or cons_b $b_1 $list_b.maybe_cons
-        Zip this a;$cons_a.head b;$cons_b.head
-        zip_or rest $cons_a.tail $cont_a $cons_b.tail $cont_b
+        singleton_cons a_1 $cont_a
+        maybe_cons a_c $list_a
+        unwrap_or cons_a $a_1 $a_c
+        view a_head $cons_a $.head
+        view a_tail $cons_a $.tail        
+        singleton_cons b_1 $cont_b
+        maybe_cons b_c $list_b
+        unwrap_or cons_b $b_1 $b_c
+        view b_head $cons_b $.head
+        view b_tail $cons_b $.tail 
+        Zip this a;$a_head b;$b_head
+        zip_or rest $a_tail $cont_a $b_tail $cont_b
         push_front ~ $rest $this
     just just_empty_list $empty_list
     lazy_if ~ $both_empty $just_empty_list $when_either_non_empty
@@ -157,21 +212,27 @@ fn zip_or List list_a:List cont_a:? list_b:List cont_b:?
 struct SplitOne val:? rest:List
 
 fn split_first_c SplitOne cons:Cons
-    SplitOne ~ val;$cons.head rest;$cons.tail
+    view head $cons $.head
+    view tail $cons $.tail
+    SplitOne ~ val;$head rest;$tail
 
 fn split_last_c SplitOne cons:Cons
-    SplitOne last_split val;$cons.head rest;$empty_list
-    split_last maybe_further $cons.tail
+    view head $cons $.head
+    view tail $cons $.tail
+    SplitOne last_split val;$head rest;$empty_list
+    split_last maybe_further $tail
     fn when_further SplitOne further:SplitOne
-        push_front new_rest $further.rest $cons.head
+        push_front new_rest $further.rest $head
         SplitOne ~ val;$further.val rest;$new_rest
     map_or ~ $last_split $when_further $maybe_further
 
 fn split_first Option list:List
-    map_opt ~ $split_first_c $list.maybe_cons
+    maybe_cons c $list
+    map_opt ~ $split_first_c $c
 
 fn split_last SplitOne list:List
-    map_opt ~ $split_last_c $list.maybe_cons
+    maybe_cons c $list
+    map_opt ~ $split_last_c $c
 
 fn first_c ? cons:Cons
     split_first_c split $cons
@@ -182,10 +243,8 @@ fn last_c ? cons:Cons
     id ~ $split.val
 
 fn first Option list:List
-    map_opt ~ $first_c $list.maybe_cons
-
-fn last Option list:List
-    map_opt ~ $last_c $list.maybe_cons
+    maybe_cons c $list
+    map_opt ~ $first_c $c
 
 fn map_first List f:<?,?> l:List
     fn map_split SplitOne split:SplitOne

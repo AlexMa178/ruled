@@ -1,0 +1,62 @@
+-- Store comonad
+union Mut
+    %mut ? <?,?>
+
+fn view_mut ? m:Mut
+    % ~ $m mut;$keep2a
+
+fn set_mut ? m:Mut new_val:?
+    % f $m mut;$keep2b
+    f ~ $new_val
+
+fn over_mut ? m:Mut f:<?,?>
+    view_mut val $m
+    f new_val $val
+    set_mut ~ $m $new_val
+
+fn whole_mut Mut val:?
+    %mut ~ $val $id
+
+fn extract_mut ? m:Mut
+    view_mut x $m
+    set_mut ~ $m $x
+
+fn duplicate_mut Mut m:Mut
+    % set_f $m mut;$keep2b
+    view_mut x $m
+    fn new_set_f Mut new_x:?
+        %mut ~ $new_x $set_f
+    %mut ~ $x $new_set_f
+
+union Lens
+    %lens <Mut,?>
+
+fn mut_of Mut s:? lens:Lens
+    % lens_f $lens lens;$id
+    lens_f ~ $s
+
+fn view ? s:? lens:Lens
+    mut_of m $s $lens
+    view_mut ~ $m
+
+fn set ? s:? lens:Lens new_val:?
+    mut_of m $s $lens
+    set_mut ~ $m $new_val
+
+fn over ? s:? lens:Lens f:<?,?>
+    mut_of m $s $lens
+    over_mut ~ $m $f
+
+fn compose_lens Lens lens1:Lens lens2:Lens
+    fn composed_mut Mut s0:?
+        view s1 $s0 $lens1
+        view s2 $s1 $lens2
+        fn composed_set ? new_val:?
+            set n1 $s1 $lens2 $new_val
+            set ~ $s0 $lens1 $n1
+        %mut ~ $s2 $composed_set
+    %lens ~ $composed_mut
+
+-- identity lens
+scope .whole
+    %lens ~ $whole_mut

@@ -183,7 +183,7 @@ fn lex_word(word: &str) -> Result<Token, String> {
 fn lex_value_token(val_str: &str) -> Result<ValueToken, String> {
     Ok(match val_str {
         w if let Some(v) = w.strip_prefix('$') =>
-            if v.contains('.') {
+            if !v.starts_with('.') && v.contains('.') {
                 let parts = v.split('.').map(|s| s.to_owned()).collect::<Vec<_>>();
                 let (var, fields) = parts.split_first().ok_or("empty struct access")?;
                 ValueToken::StructAccess(var.to_owned(), fields.to_owned())

@@ -2,12 +2,9 @@ union Option
     %some ?
     %none
 
-%none none
-
 fn mk_some Option v:?
     %some ~ $v
-fn mk_none Option
-    id ~ $none
+%none none
 
 fn is_some Bool o:Option
     const always_true $true

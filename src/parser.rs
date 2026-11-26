@@ -249,7 +249,11 @@ impl VariantLine {
         let (variant_index, variant) = u_type.variant(&self.variant_name)?;
         let values = self.values.iter().map(|v| state.scope().borrow().value_string(v)).collect::<Result<Vec<_>, String>>()?;
         if variant.field_types.len() != values.len() { return Err(format!("wrong number of values")); }
-        if variant.field_types.iter().zip(&values).any(|(f, val)| !f.accepts(val.get_type())) { return Err(format!("wrong type for value")); }
+        for (i, (f, val)) in variant.field_types.iter().zip(&values).enumerate() {
+            if !f.accepts(val.get_type()) {
+                return Err(format!("in constructing variant \"{}\": field {i} expects \"{}\", found \"{val:?}\"", self.variant_name, f.debug_type_name()));
+            }
+        }
         let u_val = UnionValue { variant_index, values, u_type: u_type.clone() };
         state.set_ret(DataValue::U(u_val));
         state.move_ret(&self.ret_name, &DataType::U(u_type))

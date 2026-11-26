@@ -1,0 +1,20 @@
+union Pair
+    %pair ? ?
+
+scope .fst
+    fn fst_mut Mut p:Pair
+        % fst $p pair;$keep2a
+        % snd $p pair;$keep2b
+        fn set_fst Pair new_fst:?
+            %pair ~ $new_fst $snd
+        %mut ~ $fst $set_fst
+    %lens ~ $fst_mut
+
+scope .snd
+    fn snd_mut Mut p:Pair
+        % fst $p pair;$keep2a
+        % snd $p pair;$keep2b
+        fn set_snd Pair new_snd:?
+            %pair ~ $fst $new_snd
+        %mut ~ $snd $set_snd
+    %lens ~ $snd_mut
