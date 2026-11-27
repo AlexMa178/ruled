@@ -1,0 +1,68 @@
+union State
+    %state <Pair,?>
+
+scope get_st
+    fn get_st_fn Pair s:?
+        %pair ~ $s $s
+    %state ~ $get_st_fn
+
+fn put_st State s:?
+    %pair put_pair $unit $s
+    const always_put_pair $put_pair
+    %state ~ $always_put_pair
+
+fn modify_st State f:<?,?>
+    fn modify_st_fn Pair old_st:?
+        f new_st $old_st
+        %pair ~ $unit $new_st
+    %state ~ $modify_st_fn
+
+fn run_st Pair m:State s:?
+    % m_f $m state;$id
+    m_f ~ $s
+
+fn return_st State x:?
+    fn return_st_fn Pair st:?
+        %pair ~ $x $st
+    %state ~ $return_st_fn
+
+fn map_st State f:<?,?> m:State
+    fn map_st_fn Pair st:?
+        run_st pair $m $st
+        view val $pair $.fst
+        view new_st $pair $.snd
+        f new_val $val
+        %pair ~ $new_val $new_st
+    %state ~ $map_st_fn
+
+fn join_st State mm:State
+    fn join_st_fn Pair st:?
+        run_st pair $mm $st
+        view m $pair $.fst
+        view new_st $pair $.snd
+        run_st ~ $m $new_st
+    %state ~ $join_st_fn
+
+fn bind_st State f:<State,?> m:State
+    map_st mapped $f $m
+    join_st ~ $mapped
+
+fn then_st State m:State k:State
+    const always_k $k
+    bind_st ~ $always_k $m
+
+fn run_st0 Pair f:<State> s:?
+    f m
+    run_st ~ $m $s
+
+fn run_st1 Pair f:<State,?> a:? s:?
+    f m $a
+    run_st ~ $m $s
+
+fn run_st2 Pair f:<State,?,?> a:? b:? s:?
+    f m $a $b
+    run_st ~ $m $s
+
+fn run_st3 Pair f:<State,?,?,?> a:? b:? c:? s:?
+    f m $a $b $c
+    run_st ~ $m $s
