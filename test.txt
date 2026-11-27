@@ -1,5 +1,4 @@
 scope test
-    %some o0 $true
-    over? o1 $o0 $?some $not
+    add res $5 $3
     id ~ $unit
     break

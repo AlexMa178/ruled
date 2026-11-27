@@ -1,0 +1,122 @@
+union List
+    %list Option
+
+%list empty_list $none
+
+union Cons
+    %cons ? List
+
+fn cons_to_list List cons:Cons
+    %some some_cons $cons
+    %list ~ $some_cons
+
+scope ?cons
+    fn maybe_cons_mut Option list:List
+        fn cons_mut Mut cons:Cons
+            %mut ~ $cons $cons_to_list
+        % maybe_cons $list list;$id
+        map_opt ~ $cons_mut $maybe_cons
+    %affine ~ $maybe_cons_mut
+
+fn is_empty Bool list:List
+    view? maybe_cons $list $?cons
+    is_none ~ $maybe_cons
+
+fn cons_1 Cons x:?
+    %cons ~ $x $empty_list
+
+fn list_1 List e1:?
+    chain2_1 ~ $e1 $cons_1 $cons_to_list
+
+scope .head
+    fn head_mut Mut cons:Cons
+        % head $cons cons;$keep2a
+        % tail $cons cons;$keep2b
+        fn set_head Cons new_head:?
+            %cons ~ $new_head $tail
+        %mut ~ $head $set_head
+    %lens ~ $head_mut
+
+scope .tail
+    fn tail_mut Mut cons:Cons
+        % head $cons cons;$keep2a
+        % tail $cons cons;$keep2b
+        fn set_tail Cons new_tail:List
+            %cons ~ $head $new_tail
+        %mut ~ $tail $set_tail
+    %lens ~ $tail_mut
+
+scope .last
+    fn last_mut Mut cons:Cons
+        fn get_last ? curr:Cons
+            % curr_head $curr cons;$keep2a
+            % curr_tail $curr cons;$keep2b
+            view? maybe_tail_cons $curr_tail $?cons
+            map_or ~ $curr_head $get_last $maybe_tail_cons
+        fn set_last Cons curr:Cons new_val:?
+            % curr_head $curr cons;$keep2a
+            % curr_tail $curr cons;$keep2b
+            cons_1 when_empty $new_val
+            fn when_non_empty ? next:Cons
+                set_last new_tail_cons $next $new_val
+                cons_to_list new_tail $new_tail_cons
+                %cons ~ $curr_head $new_tail
+            view? maybe_tail_cons $curr_tail $?cons
+            map_or ~ $when_empty $when_non_empty $maybe_tail_cons
+        get_last last $cons
+        apply2a cons_set_last $set_last $cons
+        %mut ~ $last $cons_set_last
+    %lens ~ $last_mut
+
+scope .init
+    fn init_mut Mut cons:Cons
+        fn get_init List curr:Cons
+            % curr_head $curr cons;$keep2a
+            % curr_tail $curr cons;$keep2b
+            view? maybe_tail_cons $curr_tail $?cons
+            fn when_non_empty List tail_cons:Cons
+                get_init further $tail_cons
+                push_front ~ $further $curr_head
+            map_or ~ $empty_list $when_non_empty $maybe_tail_cons
+        fn set_init Cons new_init:List
+            view last $cons $.last
+            push_back_c ~ $new_init $last
+        get_init init $cons
+        %mut ~ $init $set_init
+    %lens ~ $init_mut
+
+compose_a_l ?head $?cons $.head
+compose_a_l ?tail $?cons $.tail
+compose_a_l ?last $?cons $.last
+compose_a_l ?init $?cons $.init
+
+fn push_front List list:List elem:?
+    %cons c $elem $list
+    cons_to_list ~ $c
+
+fn concat_c_l Cons a:Cons b:List
+    apply2b concat_b $concat $b
+    over ~ $a $.tail $concat_b
+
+fn concat_c_c Cons a:Cons b:Cons
+    cons_to_list b_list $b
+    concat_c_l ~ $a $b_list
+
+fn concat_l_c Cons a:List b:Cons
+    apply2b when_a_non_empty $concat_c_c $b
+    view? maybe_a_cons $a $?cons
+    map_or ~ $b $when_a_non_empty $maybe_a_cons
+
+fn concat List a:List b:List
+    apply2b concat_c_b $concat_c_l $b
+    compose2_1 when_a_non_empty $concat_c_b $cons_to_list
+    view? maybe_a_cons $a $?cons
+    map_or ~ $b $when_a_non_empty $maybe_a_cons
+
+fn push_back_c Cons list:List elem:?
+    cons_1 singleton $elem
+    concat_l_c ~ $list $singleton
+
+fn push_back List list:List elem:?
+    list_1 singleton $elem
+    concat ~ $list $singleton

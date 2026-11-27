@@ -1,92 +1,11 @@
-union List
-    %list Option
-
-%list empty_list $none
-
-union Cons
-    %cons ? List
-
-fn maybe_cons Option list:List
-    % ~ $list list;$id
-
-fn is_empty Bool list:List
-    maybe_cons c $list
-    is_none ~ $c
-
-fn singleton_cons Cons x:?
-    %cons ~ $x $empty_list
-
-fn cons_to_list List cons:Cons
-    %some some_cons $cons
-    %list ~ $some_cons
-
-scope .head
-    fn head_mut Mut cons:Cons
-        % head $cons cons;$keep2a
-        % tail $cons cons;$keep2b
-        fn set_head Cons new_head:?
-            %cons ~ $new_head $tail
-        %mut ~ $head $set_head
-    %lens ~ $head_mut
-
-scope .last
-    fn last_mut Mut cons:Cons
-        fn get_last ? curr:Cons
-            % curr_head $curr cons;$keep2a
-            % curr_tail $curr cons;$keep2b
-            maybe_cons tail_c $curr_tail
-            map_or ~ $curr_head $get_last $tail_c
-        fn set_last Cons curr:Cons new_val:?
-            % curr_head $curr cons;$keep2a
-            % curr_tail $curr cons;$keep2b
-            singleton_cons when_empty $new_val
-            fn when_non_empty ? next:Cons
-                set_last new_tail_cons $next $new_val
-                cons_to_list new_tail $new_tail_cons
-                %cons ~ $curr_head $new_tail
-            maybe_cons tail_c $curr_tail
-            map_or ~ $when_empty $when_non_empty $tail_c
-        get_last last $cons
-        apply2a cons_set_last $set_last $cons
-        %mut ~ $last $cons_set_last
-    %lens ~ $last_mut
-
-scope .tail
-    fn tail_mut Mut cons:Cons
-        % head $cons cons;$keep2a
-        % tail $cons cons;$keep2b
-        fn set_tail Cons new_tail:List
-            %cons ~ $head $new_tail
-        %mut ~ $tail $set_tail
-    %lens ~ $tail_mut
-
-fn list_1 List e1:?
-    chain2_1 ~ $e1 $singleton_cons $cons_to_list
-
-fn push_front List list:List elem:?
-    %cons c $elem $list
-    cons_to_list ~ $c
-
-fn concat List a:List b:List
-    fn when_a_non_empty List cons:Cons
-        apply2b concat_b $concat $b
-        over res_cons $cons $.tail $concat_b
-        cons_to_list ~ $res_cons
-    maybe_cons a_c $a
-    map_or ~ $b $when_a_non_empty $a_c
-
-fn push_back List list:List elem:?
-    list_1 singleton $elem
-    concat ~ $list $singleton
-
 fn foldr ? f:<?,?,?> z:? l:List
     fn when_non_empty ? cons:Cons
         view head $cons $.head
         view tail $cons $.tail
         foldr res $f $z $tail
         f ~ $res $head
-    maybe_cons c $l
-    map_or ~ $z $when_non_empty $c
+    view? maybe_cons $l $?cons
+    map_or ~ $z $when_non_empty $maybe_cons
 
 fn foldl ? f:<?,?,?> z:? l:List
     fn when_non_empty ? cons:Cons
@@ -94,8 +13,8 @@ fn foldl ? f:<?,?,?> z:? l:List
         view tail $cons $.tail
         f new_z $z $head
         foldl ~ $f $new_z $tail
-    maybe_cons c $l
-    map_or ~ $z $when_non_empty $c
+    view? maybe_cons $l $?cons
+    map_or ~ $z $when_non_empty $maybe_cons
 
 fn for_each Unit f:<Unit,?> l:List
     fn fold_fn Unit _:Unit x:?
@@ -118,8 +37,8 @@ fn foldl_while FoldWhileRes f:<Option,?,?> z:? l:List
         FoldWhileRes when_none folded;$z remaining;$remaining
         map_or ~ $when_none $when_some $maybe_new_z
     FoldWhileRes when_empty folded;$z remaining;$empty_list
-    maybe_cons c $l
-    map_or ~ $when_empty $when_non_empty $c
+    view? maybe_cons $l $?cons
+    map_or ~ $when_empty $when_non_empty $maybe_cons
 
 fn foldr_while FoldWhileRes f:<Option,?,?> z:? l:List
     fn when_non_empty FoldWhileRes cons:Cons
@@ -136,11 +55,11 @@ fn foldr_while FoldWhileRes f:<Option,?,?> z:? l:List
         is_empty not_already_stopped $res.remaining
         if ~ $not_already_stopped $fold_maybe_continues $fold_stopped
     FoldWhileRes when_empty folded;$z remaining;$empty_list
-    maybe_cons c $l
-    map_or ~ $when_empty $when_non_empty $c
+    view? maybe_cons $l $?cons
+    map_or ~ $when_empty $when_non_empty $maybe_cons
 
 fn triml_while List pred:<Bool,?> l:List
-    fn fold_fn Option acc:Unit x:?
+    fn fold_fn Option _:Unit x:?
         pred test $x
         mk_some some_unit $unit
         if ~ $test $some_unit $none
@@ -148,7 +67,7 @@ fn triml_while List pred:<Bool,?> l:List
     id ~ $res.remaining
 
 fn trimr_while List pred:<Bool,?> l:List
-    fn fold_fn Option acc:Unit x:?
+    fn fold_fn Option _:Unit x:?
         pred test $x
         mk_some some_unit $unit
         if ~ $test $some_unit $none
@@ -192,70 +111,15 @@ fn zip_or List list_a:List cont_a:? list_b:List cont_b:?
     is_empty b_empty $list_b
     and both_empty $a_empty $b_empty
     fn when_either_non_empty List
-        singleton_cons a_1 $cont_a
-        maybe_cons a_c $list_a
-        unwrap_or cons_a $a_1 $a_c
-        view a_head $cons_a $.head
-        view a_tail $cons_a $.tail        
-        singleton_cons b_1 $cont_b
-        maybe_cons b_c $list_b
-        unwrap_or cons_b $b_1 $b_c
-        view b_head $cons_b $.head
-        view b_tail $cons_b $.tail
+        view_or a_head $list_a $?head $cont_a
+        view_or b_head $list_b $?head $cont_b
+        view_or a_tail $list_a $?tail $empty_list
+        view_or b_tail $list_b $?tail $empty_list
         %pair this $a_head $b_head
         zip_or rest $a_tail $cont_a $b_tail $cont_b
         push_front ~ $rest $this
     just just_empty_list $empty_list
     lazy_if ~ $both_empty $just_empty_list $when_either_non_empty
-
-struct SplitOne val:? rest:List
-
-fn split_last_c SplitOne cons:Cons
-    view head $cons $.head
-    view tail $cons $.tail
-    SplitOne last_split val;$head rest;$empty_list
-    split_last maybe_further $tail
-    fn when_further SplitOne further:SplitOne
-        push_front new_rest $further.rest $head
-        SplitOne ~ val;$further.val rest;$new_rest
-    map_or ~ $last_split $when_further $maybe_further
-
-fn split_first Option list:List
-    fn split_first_c SplitOne cons:Cons
-        view head $cons $.head
-        view tail $cons $.tail
-        SplitOne ~ val;$head rest;$tail
-    maybe_cons c $list
-    map_opt ~ $split_first_c $c
-
-fn split_last SplitOne list:List
-    maybe_cons c $list
-    map_opt ~ $split_last_c $c
-
-fn first Option list:List
-    maybe_cons c $list
-    apply2b first_c $view $.head
-    map_opt ~ $first_c $c
-
-fn map_first List f:<?,?> l:List
-    fn map_split SplitOne split:SplitOne
-        f new_val $split.val
-        SplitOne ~ val;$new_val rest;$split.rest
-    fn put_back_together List split:SplitOne
-        push_front ~ $split.rest $split.val
-    compose2_1 mapped_of $map_split $put_back_together
-    split_first l_split $l
-    map_opt ~ $mapped_of $l_split
-
-fn map_last List f:<?,?> l:List
-    fn map_split SplitOne split:SplitOne
-        f new_val $split.val
-        SplitOne ~ val;$new_val rest;$split.rest
-    fn put_back_together List split:SplitOne
-        push_back ~ $split.rest $split.val
-    compose2_1 mapped_of $map_split $put_back_together
-    split_last l_split $l
-    map_opt ~ $mapped_of $l_split
 
 fn all Bool pred:<Bool,?> l:List
     fn fold_fn Option _:Unit x:?

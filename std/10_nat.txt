@@ -16,8 +16,8 @@ fn inc Nat n:Nat
         if ~ $bit $some_false $none
     fn end_f List rest:List
         apply3bc not_head $over $.head $not
-        singleton_cons ending_1 $true
-        maybe_cons c $rest
+        cons_1 ending_1 $true
+        view? c $rest $?cons
         map_or end_cons $ending_1 $not_head $c
         cons_to_list ~ $end_cons
     nat_bits bits $n
@@ -29,7 +29,7 @@ fn dec! Nat n:Nat
         mk_some some_true $true
         if ~ $bit $none $some_true
     fn end_f List rest:List
-        maybe_cons c $rest
+        view? c $rest $?cons
         unwrap! cons $c
         set 0_head_cons $cons $.head $false
         cons_to_list 0_head_list $0_head_cons

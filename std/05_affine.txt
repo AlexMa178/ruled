@@ -1,0 +1,78 @@
+union Affine
+    %affine <Option,?>
+
+fn try_mut_of Option s:? a:Affine
+    % a_f $a affine;$id
+    a_f ~ $s
+
+fn view? Option s:? a:Affine
+    try_mut_of maybe_m $s $a
+    map_opt ~ $view_mut $maybe_m
+
+fn view_or ? s:? a:Affine when_none:?
+    view? maybe_viewed $s $a
+    unwrap_or ~ $when_none $maybe_viewed
+
+fn view?! ? s:? a:Affine
+    try_mut_of maybe_m $s $a
+    unwrap! ~ $maybe_m
+
+fn set?? Option s:? a:Affine new_val:?
+    apply2b set_new_val $set_mut $new_val
+    try_mut_of maybe_m $s $a
+    map_opt ~ $set_new_val $maybe_m
+
+fn set? ? s:? a:Affine new_val:?
+    set?? maybe_res $s $a $new_val
+    unwrap_or ~ $s $maybe_res
+
+fn set?! ? s:? a:Affine new_val:?
+    set?? maybe_res $s $a $new_val
+    unwrap! ~ $maybe_res
+
+fn over?? Option s:? a:Affine f:<?,?>
+    apply2b over_f $over_mut $f
+    try_mut_of maybe_m $s $a
+    map_opt ~ $over_f $maybe_m
+
+fn over? ? s:? a:Affine f:<?,?>
+    over?? maybe_res $s $a $f
+    unwrap_or ~ $s $maybe_res
+
+fn over?! ? s:? a:Affine f:<?,?>
+    over?? maybe_res $s $a $f
+    unwrap! ~ $maybe_res
+
+fn lens_to_affine Affine lens:Lens
+    % lens_f $lens lens;$id
+    compose2_1 affine_f $lens_f $mk_some
+    %affine ~ $affine_f
+
+fn compose_affine Affine a1:Affine a2:Affine
+    fn composed_affine_mut Option s0:?
+        view? maybe_s1 $s0 $a1
+        fn when_s1_some Option s1:?
+            view? maybe_s2 $s1 $a2
+            fn when_s2_some Mut s2:?
+                fn composed_affine_set ? new_val:?
+                    set?! n1 $s1 $a2 $new_val
+                    set?! ~ $s0 $a1 $n1
+                %mut ~ $s2 $composed_affine_set
+            map_opt ~ $when_s2_some $maybe_s2
+        bind_opt ~ $when_s1_some $maybe_s1
+    %affine ~ $composed_affine_mut
+
+fn compose_l_a Affine l1:Lens a2:Affine
+    lens_to_affine a1 $l1
+    compose_affine ~ $a1 $a2
+
+fn compose_a_l Affine a1:Affine l2:Lens
+    lens_to_affine a2 $l2
+    compose_affine ~ $a1 $a2
+
+scope ?some
+    fn maybe_some_mut Option o:Option
+        fn some_mut Mut val:?
+            %mut ~ $val $mk_some
+        map_opt ~ $when_some $o 
+    %affine ~ $maybe_some_mut

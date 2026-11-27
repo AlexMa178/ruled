@@ -250,7 +250,7 @@ impl VariantLine {
         let values = self.values.iter().map(|v| state.scope().borrow().value_string(v)).collect::<Result<Vec<_>, String>>()?;
         if variant.field_types.len() != values.len() { return Err(format!("wrong number of values")); }
         for (i, (f, val)) in variant.field_types.iter().zip(&values).enumerate() {
-            if !f.accepts(val.get_type()) {
+            if !f.either_accepts(val.get_type()) {
                 return Err(format!("in constructing variant \"{}\": field {i} expects \"{}\", found \"{val:?}\"", self.variant_name, f.debug_type_name()));
             }
         }
